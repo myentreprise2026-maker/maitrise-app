@@ -536,6 +536,7 @@ let state = {
   coachMsgs:[],
   coachBusy:false,
   coachExercice:null,
+  bonusPickerOpen:false,
   toast:null,
 };
 function me(){ return state.profile; }
@@ -686,6 +687,21 @@ function renderDefis(u){
     </div>`;
   }).join('');
 
+  const allDone = list.length>0 && list.every(ex => u.doneToday && u.doneToday[ex.id]);
+  const bonusPool = eligiblePool(u).filter(e => !u.dailyExercises.includes(e.id));
+
+  const bonusSection = allDone ? `
+    <div class="card" style="margin-top:20px; border-color:var(--muscle);">
+      <h3 style="margin-bottom:6px;">🏆 Défis du jour terminés !</h3>
+      <p style="color:var(--chalk-dim); font-size:13px; margin:0 0 14px;">Envie de continuer ? Ajoute un défi bonus sur ce que tu veux travailler en plus — toujours ajusté à ton poids, toujours validé par ton coach, toujours des points en plus.</p>
+      ${state.bonusPickerOpen ? `
+        <div class="chip-group">
+          ${bonusPool.length ? bonusPool.map(e=>`<button type="button" class="chip" data-add-bonus="${e.id}">${e.nom}</button>`).join('') : '<span style="color:var(--muted); font-size:12.5px;">Plus aucun exercice disponible avec ton équipement/lieu actuel.</span>'}
+        </div>
+      ` : `<button class="btn-small go" id="btnOpenBonus">+ Ajouter un défi bonus</button>`}
+    </div>
+  ` : '';
+
   return `
     <div class="toolbar">
       <div>
@@ -703,6 +719,8 @@ function renderDefis(u){
     </div>
     <div class="challenge-list">${rows || '<div class="empty">Aucun défi pour le moment.</div>'}</div>
     <button class="btn-small" id="btnRegen" style="margin-top:16px;">🔄 Régénérer les défis</button>
+    ${bonusSection}
+    <p style="color:var(--muted); font-size:12px; margin-top:16px;">Tu peux aussi simplement demander des idées d'exercices à ton coach (bouton en bas à droite) — il te conseille librement, même sans défi bonus.</p>
   `;
 }
 
@@ -1015,6 +1033,22 @@ function attachHandlers(u){
 
   document.querySelectorAll('[data-validate]').forEach(el=>{
     el.addEventListener('click', ()=>{ openCoachForValidation(el.dataset.validate); });
+  });
+
+  const btnOpenBonus = document.getElementById('btnOpenBonus');
+  if(btnOpenBonus) btnOpenBonus.addEventListener('click', ()=>{
+    state.bonusPickerOpen = true;
+    render();
+  });
+
+  document.querySelectorAll('[data-add-bonus]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const exId = el.dataset.addBonus;
+      if(!u.dailyExercises.includes(exId)) u.dailyExercises.push(exId);
+      state.bonusPickerOpen = false;
+      await upsertProfile(u);
+      render();
+    });
   });
 
   const fab = document.getElementById('coachFab');
