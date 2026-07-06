@@ -446,15 +446,36 @@ function pickExercisesForTime(pool, targetMin){
 }
 
 
+const RECIPE_TYPES = [
+  {id:'petit-dejeuner', label:'Petit-déjeuner'},
+  {id:'dejeuner', label:'Déjeuner'},
+  {id:'diner', label:'Dîner'},
+  {id:'collation', label:'Collation'},
+  {id:'boisson', label:'Boisson'},
+];
+
 const RECIPES = [
-  {id:'r1', nom:'Bowl poulet-quinoa', tag:'perte', kcal:420, ing:['150g blanc de poulet','80g quinoa cuit','Brocolis vapeur','Citron, coriandre'], etapes:'Cuis le poulet à la poêle sans matière grasse, mélange avec le quinoa et les brocolis, assaisonne au citron.'},
-  {id:'r2', nom:'Skyr et fruits rouges', tag:'perte', kcal:180, ing:['200g skyr nature','Fruits rouges surgelés','1 c. à café de miel'], etapes:'Mélange le skyr avec les fruits rouges décongelés et un filet de miel.'},
-  {id:'r3', nom:'Salade thon-haricots', tag:'perte', kcal:350, ing:['1 boîte de thon au naturel','Haricots blancs','Tomates, oignon rouge','Huile d\'olive, vinaigre'], etapes:'Égoutte le thon, mélange tous les ingrédients, assaisonne légèrement.'},
-  {id:'r4', nom:'Riz, bœuf haché, œuf', tag:'muscle', kcal:680, ing:['200g riz cuit','150g bœuf haché 5%','2 œufs','Sauce soja'], etapes:'Fais revenir le bœuf, ajoute le riz, pousse sur le côté et cuis les œufs brouillés, mélange le tout avec la sauce soja.'},
-  {id:'r5', nom:'Shaker post-training', tag:'muscle', kcal:320, ing:['30g whey ou protéine végétale','1 banane','250ml lait','1 c. à soupe de beurre de cacahuète'], etapes:'Mixe tous les ingrédients jusqu\'à obtenir une texture lisse.'},
-  {id:'r6', nom:'Pâtes complètes au saumon', tag:'muscle', kcal:610, ing:['100g pâtes complètes','120g saumon','Épinards frais','Crème légère'], etapes:'Cuis les pâtes, poêle le saumon émietté avec les épinards, ajoute la crème légère et mélange.'},
-  {id:'r7', nom:'Porridge avoine-banane', tag:'endurance', kcal:390, ing:['60g flocons d\'avoine','250ml lait','1 banane','Cannelle'], etapes:'Fais chauffer le lait et les flocons quelques minutes, ajoute la banane écrasée et la cannelle.'},
-  {id:'r8', nom:'Wrap dinde-avocat', tag:'tonification', kcal:410, ing:['1 tortilla complète','100g blanc de dinde','1/2 avocat','Salade, tomate'], etapes:'Garnis la tortilla avec tous les ingrédients et roule fermement.'},
+  {id:'r1', nom:'Bowl poulet-quinoa', type:'dejeuner', tag:'perte', kcal:420, ing:['150g blanc de poulet','80g quinoa cuit','Brocolis vapeur','Citron, coriandre'], etapes:'Cuis le poulet à la poêle sans matière grasse, mélange avec le quinoa et les brocolis, assaisonne au citron.'},
+  {id:'r2', nom:'Skyr et fruits rouges', type:'collation', tag:'perte', kcal:180, ing:['200g skyr nature','Fruits rouges surgelés','1 c. à café de miel'], etapes:'Mélange le skyr avec les fruits rouges décongelés et un filet de miel.'},
+  {id:'r3', nom:'Salade thon-haricots', type:'dejeuner', tag:'perte', kcal:350, ing:['1 boîte de thon au naturel','Haricots blancs','Tomates, oignon rouge','Huile d\'olive, vinaigre'], etapes:'Égoutte le thon, mélange tous les ingrédients, assaisonne légèrement.'},
+  {id:'r4', nom:'Riz, bœuf haché, œuf', type:'diner', tag:'muscle', kcal:680, ing:['200g riz cuit','150g bœuf haché 5%','2 œufs','Sauce soja'], etapes:'Fais revenir le bœuf, ajoute le riz, pousse sur le côté et cuis les œufs brouillés, mélange le tout avec la sauce soja.'},
+  {id:'r5', nom:'Shaker post-training', type:'boisson', tag:'muscle', kcal:320, ing:['30g whey ou protéine végétale','1 banane','250ml lait','1 c. à soupe de beurre de cacahuète'], etapes:'Mixe tous les ingrédients jusqu\'à obtenir une texture lisse.'},
+  {id:'r6', nom:'Pâtes complètes au saumon', type:'diner', tag:'muscle', kcal:610, ing:['100g pâtes complètes','120g saumon','Épinards frais','Crème légère'], etapes:'Cuis les pâtes, poêle le saumon émietté avec les épinards, ajoute la crème légère et mélange.'},
+  {id:'r7', nom:'Porridge avoine-banane', type:'petit-dejeuner', tag:'endurance', kcal:390, ing:['60g flocons d\'avoine','250ml lait','1 banane','Cannelle'], etapes:'Fais chauffer le lait et les flocons quelques minutes, ajoute la banane écrasée et la cannelle.'},
+  {id:'r8', nom:'Wrap dinde-avocat', type:'dejeuner', tag:'tonification', kcal:410, ing:['1 tortilla complète','100g blanc de dinde','1/2 avocat','Salade, tomate'], etapes:'Garnis la tortilla avec tous les ingrédients et roule fermement.'},
+  {id:'r9', nom:'Œufs brouillés & avocat', type:'petit-dejeuner', tag:'muscle', kcal:430, ing:['3 œufs','1/2 avocat','1 tranche de pain complet','Sel, poivre'], etapes:'Brouille les œufs à feu doux, écrase l\'avocat sur le pain grillé, sers ensemble.'},
+  {id:'r10', nom:'Bowl de fruits & granola', type:'petit-dejeuner', tag:'perte', kcal:310, ing:['1 yaourt grec nature','30g granola','1 pomme','1 kiwi'], etapes:'Coupe les fruits, dispose le yaourt au fond du bol, ajoute les fruits et le granola par-dessus.'},
+  {id:'r11', nom:'Pancakes protéinés', type:'petit-dejeuner', tag:'muscle', kcal:450, ing:['2 œufs','1 banane','30g flocons d\'avoine','1 c. à café de levure'], etapes:'Mixe tous les ingrédients, cuis en petites crêpes épaisses à la poêle sans matière grasse.'},
+  {id:'r12', nom:'Soupe de légumes maison', type:'diner', tag:'perte', kcal:220, ing:['Carottes','Poireaux','Pommes de terre','Bouillon de légumes'], etapes:'Fais cuire les légumes coupés dans le bouillon 25 min, mixe jusqu\'à obtenir une texture lisse.'},
+  {id:'r13', nom:'Poêlée de crevettes & légumes', type:'diner', tag:'perte', kcal:340, ing:['200g crevettes','Poivrons','Courgettes','Sauce soja légère'], etapes:'Fais sauter les légumes à feu vif, ajoute les crevettes en fin de cuisson 3-4 min.'},
+  {id:'r14', nom:'Chili con carne maison', type:'diner', tag:'muscle', kcal:590, ing:['150g bœuf haché','Haricots rouges','Tomates concassées','Épices (cumin, paprika)'], etapes:'Fais revenir la viande, ajoute les tomates et les épices, laisse mijoter 20 min, incorpore les haricots.'},
+  {id:'r15', nom:'Mix noix & fruits secs', type:'collation', tag:'endurance', kcal:210, ing:['20g amandes','20g noix de cajou','20g raisins secs','20g abricots secs'], etapes:'Mélange simplement tous les ingrédients dans un petit contenant à emporter.'},
+  {id:'r16', nom:'Barre maison flocons-miel', type:'collation', tag:'endurance', kcal:190, ing:['80g flocons d\'avoine','2 c. à soupe de miel','1 c. à soupe beurre de cacahuète','Un peu de cannelle'], etapes:'Mélange tout, tasse dans un moule, réfrigère 2h puis découpe en barres.'},
+  {id:'r17', nom:'Bâtonnets de légumes & houmous', type:'collation', tag:'perte', kcal:150, ing:['Carottes','Concombre','3 c. à soupe de houmous'], etapes:'Coupe les légumes en bâtonnets, sers avec le houmous pour tremper.'},
+  {id:'r18', nom:'Eau citronnée & menthe', type:'boisson', tag:'perte', kcal:5, ing:['1 citron','Quelques feuilles de menthe','500ml d\'eau'], etapes:'Presse le citron dans l\'eau, ajoute la menthe froissée, laisse infuser au frais.'},
+  {id:'r19', nom:'Smoothie vert énergisant', type:'boisson', tag:'endurance', kcal:160, ing:['1 banane','Épinards frais','250ml lait d\'amande','1 c. à café de miel'], etapes:'Mixe tous les ingrédients jusqu\'à obtenir une texture lisse et homogène.'},
+  {id:'r20', nom:'Thé glacé maison sans sucre', type:'boisson', tag:'tonification', kcal:5, ing:['2 sachets de thé','500ml d\'eau','Glaçons','Rondelles de citron'], etapes:'Infuse le thé dans l\'eau chaude, laisse refroidir, sers sur glaçons avec le citron.'},
+  {id:'r21', nom:'Wrap végétarien tonifiant', type:'dejeuner', tag:'tonification', kcal:380, ing:['1 tortilla complète','Houmous','Poivrons grillés','Roquette'], etapes:'Tartine la tortilla de houmous, garnis de légumes, roule fermement.'},
 ];
 
 const OBJ_LABEL = Object.fromEntries(OBJECTIFS.map(o=>[o.id,o.label]));
@@ -601,6 +622,7 @@ let state = {
   gpsWatchId:null,
   gpsNotifTimer:null,
   gpsTickTimer:null,
+  recetteFiltre:'tous',
 };
 function me(){ return state.profile; }
 
@@ -852,7 +874,10 @@ function renderArene(u, lvl, next){
 }
 
 function renderRecettes(u){
-  const cards = RECIPES.map(r=>`
+  const filtre = state.recetteFiltre || 'tous';
+  const filtered = filtre==='tous' ? RECIPES : RECIPES.filter(r=>r.type===filtre);
+
+  const cardHtml = r => `
     <div class="recipe-card">
       <div class="recipe-top">
         <span class="recipe-tag ${r.tag==='perte'?'perte':''}">${OBJ_LABEL[r.tag]}</span>
@@ -866,11 +891,30 @@ function renderRecettes(u){
         <p style="margin:4px 0 0;">${r.etapes}</p>
       </div>
     </div>
-  `).join('');
+  `;
+
+  let content;
+  if(filtre==='tous'){
+    content = RECIPE_TYPES.map(t=>{
+      const items = RECIPES.filter(r=>r.type===t.id);
+      if(items.length===0) return '';
+      return `
+        <div class="section-title" style="margin-top:22px;">${t.label}</div>
+        <div class="recipe-grid">${items.map(cardHtml).join('')}</div>
+      `;
+    }).join('');
+  } else {
+    content = `<div class="recipe-grid">${filtered.map(cardHtml).join('') || '<div class="empty">Aucune recette dans cette catégorie.</div>'}</div>`;
+  }
+
   return `
     <h3>Recettes adaptées à tes objectifs</h3>
     <p style="color:var(--muted); font-size:12.5px; margin:-8px 0 18px;">Sélection indicative, à adapter à tes besoins et à l'avis d'un professionnel de santé si besoin.</p>
-    <div class="recipe-grid">${cards}</div>
+    <div class="chip-group" style="margin-bottom:8px;">
+      <button type="button" class="chip ${filtre==='tous'?'selected':''}" data-recette-filtre="tous">Tous</button>
+      ${RECIPE_TYPES.map(t=>`<button type="button" class="chip ${filtre===t.id?'selected':''}" data-recette-filtre="${t.id}">${t.label}</button>`).join('')}
+    </div>
+    ${content}
   `;
 }
 
@@ -1156,6 +1200,13 @@ function attachHandlers(u){
       if(!u.dailyExercises.includes(exId)) u.dailyExercises.push(exId);
       state.bonusPickerOpen = false;
       await upsertProfile(u);
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-recette-filtre]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.recetteFiltre = el.dataset.recetteFiltre;
       render();
     });
   });
