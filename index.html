@@ -343,6 +343,27 @@
   .footer-reset{ text-align:center; margin-top:30px; }
   .footer-reset button{ background:none; border:none; color:var(--muted); font-size:11.5px; text-decoration:underline; }
 
+  /* ---------- Suivi GPS en direct ---------- */
+  .gps-panel{
+    position:fixed; bottom:96px; left:22px; z-index:50; width:290px; max-width:calc(100vw - 32px);
+    background:var(--card); border:1px solid var(--line-strong); border-radius:16px; padding:20px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .gps-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .gps-head h4{ margin:0; font-family:var(--font-display); font-size:18px; font-weight:400; letter-spacing:0.5px; }
+  .gps-stats-row{ display:flex; gap:10px; margin-bottom:12px; }
+  .gps-stat{ flex:1; text-align:center; background:var(--ink-2); border-radius:10px; padding:10px 6px; }
+  .gps-stat .big{ font-family:var(--font-mono); font-size:19px; font-weight:800; }
+  .gps-stat .label{ font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;}
+  .gps-message{ background:var(--energy-dim); color:var(--energy); padding:10px 12px; border-radius:10px; font-size:12.5px; font-weight:700; text-align:center; margin-bottom:14px; line-height:1.4; }
+  .gps-actions{ display:flex; gap:8px; }
+  .gps-fab{
+    position:fixed; bottom:22px; left:22px; z-index:50;
+    background:var(--muscle); color:#14161a; border:none; border-radius:100px;
+    padding:12px 18px; font-weight:800; font-size:13px; display:flex; align-items:center; gap:8px;
+    box-shadow:0 10px 30px rgba(47,212,192,0.35);
+  }
+
 </style>
 </head>
 <body>
@@ -511,6 +532,14 @@ function adjustTimeAllowed(baseMin, poids){
   const factor = Math.pow(poids/60, 0.5);
   return Math.round(baseMin*factor*10)/10;
 }
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLon = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R*c;
+}
 function computeTarget(ex, poids){
   if(ex.type==='reps') return {display: adjustReps(ex.base, poids)+' répétitions'};
   if(ex.type==='duration'){
@@ -567,6 +596,10 @@ let state = {
   coachExercice:null,
   bonusPickerOpen:false,
   toast:null,
+  gps:null,
+  gpsWatchId:null,
+  gpsNotifTimer:null,
+  gpsTickTimer:null,
 };
 function me(){ return state.profile; }
 
@@ -629,6 +662,7 @@ function render(){
     ${state.toast ? `<div class="toast">${state.toast}</div>` : ''}
     <button class="coach-fab" id="coachFab" title="Parler au coach">${iconSvg('bot')}</button>
     ${state.coachOpen ? renderCoachPanel() : ''}
+    ${state.gps ? renderGpsPanel() : ''}
   `;
 
   const vp = document.getElementById('viewport');
@@ -710,7 +744,11 @@ function renderDefis(u){
       <div class="ex-actions">
         ${done
           ? `<span class="badge-done">${iconSvg('medal')} Validé</span>`
-          : `<button class="btn-small" data-swap="${ex.id}" title="Remplacer par un autre exercice">⇄</button><button class="btn-small go" data-validate="${ex.id}">Terminé →</button>`
+          : (ex.type==='distance'
+              ? (state.gps && state.gps.exId===ex.id
+                  ? `<span class="badge-done" style="color:var(--muscle);">📍 Suivi en cours</span>`
+                  : `<button class="btn-small" data-swap="${ex.id}" title="Remplacer par un autre exercice">⇄</button><button class="btn-small" data-gps-start="${ex.id}">📍 Suivi GPS</button><button class="btn-small go" data-validate="${ex.id}">Terminé →</button>`)
+              : `<button class="btn-small" data-swap="${ex.id}" title="Remplacer par un autre exercice">⇄</button><button class="btn-small go" data-validate="${ex.id}">Terminé →</button>`)
         }
       </div>
     </div>`;
@@ -1034,6 +1072,7 @@ function attachHandlers(u){
   });
   const logout = document.getElementById('btnLogout');
   if(logout) logout.addEventListener('click', async ()=>{
+    stopGpsTracking(); state.gps=null;
     await supabaseClient.auth.signOut();
     state.loggedIn=false; state.profile=null; state.authMode='login'; state.coachOpen=false; state.coachMsgs=[];
     render();
@@ -1094,6 +1133,14 @@ function attachHandlers(u){
     el.addEventListener('click', ()=>{ openCoachForValidation(el.dataset.validate); });
   });
 
+  document.querySelectorAll('[data-gps-start]').forEach(el=>{
+    el.addEventListener('click', ()=>{ startGpsTracking(el.dataset.gpsStart); });
+  });
+  const btnCancelGps = document.getElementById('btnCancelGps');
+  if(btnCancelGps) btnCancelGps.addEventListener('click', cancelGpsTracking);
+  const btnFinishGps = document.getElementById('btnFinishGps');
+  if(btnFinishGps) btnFinishGps.addEventListener('click', finishGpsTracking);
+
   const btnOpenBonus = document.getElementById('btnOpenBonus');
   if(btnOpenBonus) btnOpenBonus.addEventListener('click', ()=>{
     state.bonusPickerOpen = true;
@@ -1144,7 +1191,7 @@ async function switchTab(tab){
   render();
 }
 
-function openCoachForValidation(exId){
+function openCoachForValidation(exId, autoMsg){
   const u = me();
   const ex = EXERCISES.find(e=>e.id===exId);
   const last = u.cooldowns[exId] || 0;
@@ -1156,8 +1203,133 @@ function openCoachForValidation(exId){
   state.coachOpen = true;
   state.coachExercice = exId;
   state.coachMsgs.push({role:'sys', text:'Validation de : '+ex.nom});
-  state.coachMsgs.push({role:'coach', text:'D\'accord, on valide ton défi "'+ex.nom+'" ensemble. Raconte-moi comment ça s\'est passé : combien de temps ça t\'a pris, et comment tu t\'es senti à la fin ?'});
+  if(autoMsg){
+    render();
+    sendToCoach(autoMsg);
+  } else {
+    state.coachMsgs.push({role:'coach', text:'D\'accord, on valide ton défi "'+ex.nom+'" ensemble. Raconte-moi comment ça s\'est passé : combien de temps ça t\'a pris, et comment tu t\'es senti à la fin ?'});
+    render();
+  }
+}
+
+/* =========================================================
+   SUIVI GPS EN DIRECT (distance, vitesse, feedback)
+   ========================================================= */
+function startGpsTracking(exId){
+  if(!navigator.geolocation){
+    showToast('La géolocalisation n\'est pas disponible sur cet appareil.');
+    return;
+  }
+  if(typeof Notification !== 'undefined' && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+  state.gps = {
+    exId, distanceKm:0, startTime:Date.now(), lastPos:null, speedKmh:0,
+    message:'Démarrage du suivi GPS…'
+  };
+  state.gpsWatchId = navigator.geolocation.watchPosition(pos=>{
+    const g = state.gps;
+    if(!g) return;
+    const { latitude, longitude, speed } = pos.coords;
+    if(g.lastPos){
+      const d = haversineKm(g.lastPos.lat, g.lastPos.lon, latitude, longitude);
+      if(d > 0.002) g.distanceKm += d;
+    }
+    g.lastPos = { lat:latitude, lon:longitude };
+    g.speedKmh = (speed!=null && speed>=0) ? speed*3.6 : g.speedKmh;
+    updateGpsFeedback();
+    render();
+  }, err=>{
+    if(err.code === 1){ // PERMISSION_DENIED
+      showToast('Géolocalisation refusée — impossible de démarrer le suivi GPS.');
+      cancelGpsTracking();
+    } else {
+      showToast('Signal GPS momentanément perdu, ça va reprendre…');
+    }
+  }, { enableHighAccuracy:true, maximumAge:1000, timeout:15000 });
+
+  state.gpsNotifTimer = setInterval(()=>{
+    if(!state.gps) return;
+    notifyGps(state.gps.message);
+  }, 60000);
+  state.gpsTickTimer = setInterval(()=>{ if(state.gps) render(); }, 5000);
   render();
+}
+
+function updateGpsFeedback(){
+  const u = me();
+  const g = state.gps;
+  if(!g) return;
+  const ex = EXERCISES.find(e=>e.id===g.exId);
+  const elapsedMin = (Date.now()-g.startTime)/60000;
+  const allowedMin = adjustTimeAllowed(ex.baseTimeMin, u.poids);
+  const targetPace = allowedMin / ex.base;
+  const currentPace = g.distanceKm>0.05 ? elapsedMin / g.distanceKm : null;
+  if(currentPace==null){
+    g.message = 'C\'est parti ! Continue, les premières minutes comptent aussi.';
+  } else if(currentPace <= targetPace*0.92){
+    g.message = '🔥 Excellent rythme, tu es en avance sur ton objectif !';
+  } else if(currentPace <= targetPace*1.1){
+    g.message = '👍 Bon rythme, garde exactement ça jusqu\'au bout !';
+  } else {
+    g.message = '⚡ Accélère un peu, ton rythme actuel est en dessous de l\'objectif.';
+  }
+}
+
+function notifyGps(msg){
+  if(typeof Notification !== 'undefined' && Notification.permission==='granted'){
+    try{ new Notification('MAÎTRISE — Coach GPS', { body: msg }); }catch(e){}
+  }
+}
+
+function stopGpsTracking(){
+  if(state.gpsWatchId!=null && navigator.geolocation){ navigator.geolocation.clearWatch(state.gpsWatchId); }
+  if(state.gpsNotifTimer) clearInterval(state.gpsNotifTimer);
+  if(state.gpsTickTimer) clearInterval(state.gpsTickTimer);
+  state.gpsWatchId=null; state.gpsNotifTimer=null; state.gpsTickTimer=null;
+}
+
+function cancelGpsTracking(){
+  stopGpsTracking();
+  state.gps = null;
+  render();
+}
+
+function finishGpsTracking(){
+  const g = state.gps;
+  if(!g) return;
+  const exId = g.exId;
+  const distanceStr = g.distanceKm.toFixed(2);
+  const elapsedMin = ((Date.now()-g.startTime)/60000).toFixed(1);
+  const avgSpeed = g.distanceKm>0 ? (g.distanceKm/((Date.now()-g.startTime)/3600000)).toFixed(1) : '0';
+  stopGpsTracking();
+  state.gps = null;
+  openCoachForValidation(exId, `J'ai suivi mon parcours en direct avec le GPS : ${distanceStr} km parcourus en ${elapsedMin} minutes, vitesse moyenne ${avgSpeed} km/h.`);
+}
+
+function renderGpsPanel(){
+  const g = state.gps;
+  if(!g) return '';
+  const ex = EXERCISES.find(e=>e.id===g.exId);
+  const elapsedMin = (Date.now()-g.startTime)/60000;
+  const elapsedStr = elapsedMin<1 ? Math.round(elapsedMin*60)+' s' : elapsedMin.toFixed(1)+' min';
+  return `
+  <div class="gps-panel">
+    <div class="gps-head">
+      <h4>${ex ? ex.nom : 'Suivi GPS'}</h4>
+      <span style="font-size:10.5px; color:var(--muscle); text-transform:uppercase; letter-spacing:1px;">● en direct</span>
+    </div>
+    <div class="gps-stats-row">
+      <div class="gps-stat"><div class="big">${g.distanceKm.toFixed(2)}</div><div class="label">km</div></div>
+      <div class="gps-stat"><div class="big">${g.speedKmh.toFixed(1)}</div><div class="label">km/h</div></div>
+      <div class="gps-stat"><div class="big">${elapsedStr}</div><div class="label">temps</div></div>
+    </div>
+    <div class="gps-message">${g.message||''}</div>
+    <div class="gps-actions">
+      <button class="btn-small" id="btnCancelGps" style="flex:1;">Annuler</button>
+      <button class="btn-small go" id="btnFinishGps" style="flex:1;">Terminer →</button>
+    </div>
+  </div>`;
 }
 
 async function sendToCoach(text){
