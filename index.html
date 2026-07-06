@@ -560,9 +560,10 @@ function levelIndexForPoints(pts){
 }
 function eligiblePool(u){
   const equip = u.equipements || [];
+  const lieu = u.lieuPref || 'maison';
   return EXERCISES.filter(e =>
     u.objectifs.some(o=>e.obj.includes(o)) &&
-    e.lieu.includes(u.lieuPref||'maison') &&
+    (lieu==='les_deux' || e.lieu.includes(lieu)) &&
     (!e.equip || equip.includes(e.equip))
   );
 }
@@ -695,7 +696,7 @@ function renderDashboard(u, lvl, next, pct){
       <div style="margin-top:22px;">
         <div class="stat-row"><span class="k">Poids déclaré</span><span class="v">${u.poids} kg</span></div>
         <div class="stat-row"><span class="k">Objectifs</span><span class="v">${u.objectifs.map(o=>OBJ_LABEL[o]).join(', ')}</span></div>
-        <div class="stat-row"><span class="k">Lieu préféré</span><span class="v">${u.lieuPref==='exterieur'?'Extérieur':'Maison'}</span></div>
+        <div class="stat-row"><span class="k">Lieu préféré</span><span class="v">${u.lieuPref==='exterieur'?'Extérieur':u.lieuPref==='les_deux'?'Les deux':'Maison'}</span></div>
         <div class="stat-row"><span class="k">Défis validés (total)</span><span class="v">${u.totalValidations||0}</span></div>
       </div>
     </div>
@@ -777,8 +778,9 @@ function renderDefis(u){
         <p style="color:var(--muted); font-size:12.5px; margin:4px 0 0;">~${totalMin} min au total — généré pour tenir dans ton temps disponible (${u.tempsDispo||20} min/jour). Pas d'équipement ? Utilise ⇄ pour échanger un exercice.</p>
       </div>
       <div class="seg">
-        <button class="${u.lieuPref!=='exterieur'?'active':''}" data-lieu="maison">Maison</button>
+        <button class="${u.lieuPref!=='exterieur' && u.lieuPref!=='les_deux'?'active':''}" data-lieu="maison">Maison</button>
         <button class="${u.lieuPref==='exterieur'?'active':''}" data-lieu="exterieur">Extérieur</button>
+        <button class="${u.lieuPref==='les_deux'?'active':''}" data-lieu="les_deux">Les deux</button>
       </div>
     </div>
     <div class="section-title">Temps disponible par jour</div>
@@ -963,6 +965,7 @@ function renderAuth(){
         <div class="chip-group" id="chipLieu">
           <button type="button" class="chip" data-lieu="maison">Maison</button>
           <button type="button" class="chip" data-lieu="exterieur">Extérieur</button>
+          <button type="button" class="chip" data-lieu="les_deux">Les deux</button>
         </div>
       </div>
       <div class="field">
