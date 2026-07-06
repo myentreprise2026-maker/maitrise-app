@@ -386,17 +386,44 @@ const OBJECTIFS = [
 ];
 
 const EXERCISES = [
-  {id:'pompes', nom:'Pompes', obj:['muscle','tonification'], lieu:['maison','exterieur'], type:'reps', base:15, icon:'muscle', desc:'Mains à plat, corps gainé, poitrine proche du sol.'},
-  {id:'squats', nom:'Squats', obj:['muscle','tonification','perte'], lieu:['maison','exterieur'], type:'reps', base:20, icon:'energy', desc:'Descends comme pour t\'asseoir, dos droit, genoux dans l\'axe.'},
-  {id:'fentes', nom:'Fentes avant', obj:['muscle','tonification'], lieu:['maison','exterieur'], type:'reps', base:16, icon:'muscle', desc:'Alterne les jambes, genou arrière proche du sol.'},
-  {id:'gainage', nom:'Gainage (planche)', obj:['muscle','tonification','perte'], lieu:['maison','exterieur'], type:'duration', base:40, icon:'muscle', desc:'Corps aligné des épaules aux talons, ventre serré.'},
-  {id:'course', nom:'Course à pied', obj:['perte','endurance'], lieu:['exterieur'], type:'distance', base:1, unit:'km', baseTimeMin:7, icon:'energy', desc:'Allure régulière, respiration contrôlée.'},
-  {id:'corde', nom:'Corde à sauter', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:180, icon:'energy', desc:'Petits sauts, poignets qui font tourner la corde.', equip:'corde'},
-  {id:'velo', nom:'Vélo', obj:['endurance','perte'], lieu:['exterieur'], type:'distance', base:5, unit:'km', baseTimeMin:20, icon:'energy', desc:'Effort continu, cadence régulière.', equip:'velo'},
-  {id:'tractions', nom:'Tractions', obj:['muscle'], lieu:['exterieur'], type:'reps', base:6, icon:'muscle', desc:'Barre fixe, tire jusqu\'au menton au-dessus.', equip:'barre'},
-  {id:'abdos', nom:'Crunchs', obj:['tonification','muscle'], lieu:['maison','exterieur'], type:'reps', base:25, icon:'muscle', desc:'Bas du dos au sol, contraction courte et contrôlée.'},
-  {id:'yoga', nom:'Yoga flow', obj:['tonification','endurance'], lieu:['maison'], type:'duration', base:600, icon:'energy', desc:'Enchaînement de postures, respiration lente.'},
+  {id:'pompes', nom:'Pompes', obj:['muscle','tonification'], lieu:['maison','exterieur'], type:'reps', base:15, icon:'muscle', estMin:3, desc:'Mains à plat, corps gainé, poitrine proche du sol.'},
+  {id:'squats', nom:'Squats', obj:['muscle','tonification','perte'], lieu:['maison','exterieur'], type:'reps', base:20, icon:'energy', estMin:3, desc:'Descends comme pour t\'asseoir, dos droit, genoux dans l\'axe.'},
+  {id:'fentes', nom:'Fentes avant', obj:['muscle','tonification'], lieu:['maison','exterieur'], type:'reps', base:16, icon:'muscle', estMin:3, desc:'Alterne les jambes, genou arrière proche du sol.'},
+  {id:'gainage', nom:'Gainage (planche)', obj:['muscle','tonification','perte'], lieu:['maison','exterieur'], type:'duration', base:40, icon:'muscle', estMin:2, desc:'Corps aligné des épaules aux talons, ventre serré.'},
+  {id:'course', nom:'Course à pied', obj:['perte','endurance'], lieu:['exterieur'], type:'distance', base:1, unit:'km', baseTimeMin:7, icon:'energy', estMin:10, desc:'Allure régulière, respiration contrôlée.'},
+  {id:'corde', nom:'Corde à sauter', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:180, icon:'energy', estMin:5, desc:'Petits sauts, poignets qui font tourner la corde.', equip:'corde'},
+  {id:'velo', nom:'Vélo', obj:['endurance','perte'], lieu:['exterieur'], type:'distance', base:5, unit:'km', baseTimeMin:20, icon:'energy', estMin:20, desc:'Effort continu, cadence régulière.', equip:'velo'},
+  {id:'tractions', nom:'Tractions', obj:['muscle'], lieu:['exterieur'], type:'reps', base:6, icon:'muscle', estMin:3, desc:'Barre fixe, tire jusqu\'au menton au-dessus.', equip:'barre'},
+  {id:'abdos', nom:'Crunchs', obj:['tonification','muscle'], lieu:['maison','exterieur'], type:'reps', base:25, icon:'muscle', estMin:3, desc:'Bas du dos au sol, contraction courte et contrôlée.'},
+  {id:'yoga', nom:'Yoga flow', obj:['tonification','endurance'], lieu:['maison'], type:'duration', base:600, icon:'energy', estMin:10, desc:'Enchaînement de postures, respiration lente.'},
+  {id:'jumping_jacks', nom:'Jumping jacks', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:120, icon:'energy', estMin:3, desc:'Saute en écartant bras et jambes, puis reviens en position de départ.'},
+  {id:'burpees', nom:'Burpees', obj:['perte','muscle','endurance'], lieu:['maison','exterieur'], type:'reps', base:12, icon:'muscle', estMin:4, desc:'Squat, pompe, puis saut vertical — enchaîne les trois sans t\'arrêter.'},
+  {id:'montee_genoux', nom:'Montées de genoux', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:90, icon:'energy', estMin:3, desc:'Cours sur place en montant les genoux le plus haut possible.'},
+  {id:'mountain_climbers', nom:'Mountain climbers', obj:['perte','tonification','endurance'], lieu:['maison','exterieur'], type:'duration', base:60, icon:'muscle', estMin:3, desc:'Position de pompe, ramène alternativement les genoux vers la poitrine rapidement.'},
+  {id:'talons_fesses', nom:'Talons-fesses', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:90, icon:'energy', estMin:3, desc:'Cours sur place en amenant les talons vers les fessiers.'},
+  {id:'gainage_lateral', nom:'Gainage latéral', obj:['muscle','tonification','perte'], lieu:['maison','exterieur'], type:'duration', base:30, icon:'muscle', estMin:2, desc:'Appui sur un avant-bras, corps aligné sur le côté, hanches gainées.'},
+  {id:'squat_jump', nom:'Squats sautés', obj:['perte','muscle','endurance'], lieu:['maison','exterieur'], type:'reps', base:15, icon:'energy', estMin:3, desc:'Descends en squat puis explose vers le haut en sautant.'},
+  {id:'marche_rapide', nom:'Marche rapide', obj:['perte','endurance'], lieu:['exterieur'], type:'distance', base:2, unit:'km', baseTimeMin:20, icon:'energy', estMin:20, desc:'Marche d\'un pas soutenu, sans courir.'},
 ];
+
+const TEMPS_OPTIONS = [10, 15, 20, 30, 45, 60];
+
+function pickExercisesForTime(pool, targetMin){
+  if(pool.length===0) return [];
+  const shuffled = [...pool].sort(()=>Math.random()-0.5);
+  const chosen = [];
+  let total = 0;
+  for(const ex of shuffled){
+    const est = ex.estMin || 3;
+    if(chosen.length>0 && total + est > targetMin + 5) continue;
+    chosen.push(ex);
+    total += est;
+    if(total>=targetMin) break;
+  }
+  if(chosen.length===0) chosen.push(shuffled[0]);
+  return chosen;
+}
+
 
 const RECIPES = [
   {id:'r1', nom:'Bowl poulet-quinoa', tag:'perte', kcal:420, ing:['150g blanc de poulet','80g quinoa cuit','Brocolis vapeur','Citron, coriandre'], etapes:'Cuis le poulet à la poêle sans matière grasse, mélange avec le quinoa et les brocolis, assaisonne au citron.'},
@@ -427,6 +454,7 @@ function mapRowToUser(row){
     objectifs: row.objectifs || [],
     lieuPref: row.lieu_pref || 'maison',
     equipements: row.equipements || [],
+    tempsDispo: row.temps_dispo || 20,
     points: row.points || 0,
     totalValidations: row.total_validations || 0,
     doneToday: row.done_today || {},
@@ -442,6 +470,7 @@ function mapUserToRow(u){
     objectifs: u.objectifs,
     lieu_pref: u.lieuPref,
     equipements: u.equipements,
+    temps_dispo: u.tempsDispo,
     points: u.points,
     total_validations: u.totalValidations,
     done_today: u.doneToday,
@@ -514,8 +543,8 @@ function ensureDailyChallenge(u){
     u.dailyDate = todayKey();
     const pool = eligiblePool(u);
     const base = pool.length ? pool : EXERCISES.filter(e=>!e.equip);
-    const shuffled = [...base].sort(()=>Math.random()-0.5);
-    u.dailyExercises = shuffled.slice(0,4).map(e=>e.id);
+    const chosen = pickExercisesForTime(base, u.tempsDispo || 20);
+    u.dailyExercises = chosen.map(e=>e.id);
     if(!u.doneTodayDate || u.doneTodayDate!==todayKey()){ u.doneToday = {}; u.doneTodayDate = todayKey(); }
   }
 }
@@ -689,6 +718,7 @@ function renderDefis(u){
 
   const allDone = list.length>0 && list.every(ex => u.doneToday && u.doneToday[ex.id]);
   const bonusPool = eligiblePool(u).filter(e => !u.dailyExercises.includes(e.id));
+  const totalMin = list.reduce((sum,ex)=> sum + (ex.estMin||3), 0);
 
   const bonusSection = allDone ? `
     <div class="card" style="margin-top:20px; border-color:var(--muscle);">
@@ -706,14 +736,19 @@ function renderDefis(u){
     <div class="toolbar">
       <div>
         <h3 style="margin:0;">Défis du jour</h3>
-        <p style="color:var(--muted); font-size:12.5px; margin:4px 0 0;">Générés selon tes objectifs — se renouvellent chaque jour. Pas d'équipement ? Utilise ⇄ pour échanger un exercice.</p>
+        <p style="color:var(--muted); font-size:12.5px; margin:4px 0 0;">~${totalMin} min au total — généré pour tenir dans ton temps disponible (${u.tempsDispo||20} min/jour). Pas d'équipement ? Utilise ⇄ pour échanger un exercice.</p>
       </div>
       <div class="seg">
         <button class="${u.lieuPref!=='exterieur'?'active':''}" data-lieu="maison">Maison</button>
         <button class="${u.lieuPref==='exterieur'?'active':''}" data-lieu="exterieur">Extérieur</button>
       </div>
     </div>
+    <div class="section-title">Temps disponible par jour</div>
+    <div class="chip-group" style="margin-bottom:20px;">
+      ${TEMPS_OPTIONS.map(t=>`<button type="button" class="chip ${((u.tempsDispo||20)===t)?'selected':''}" data-set-temps="${t}">${t} min</button>`).join('')}
+    </div>
     <div class="section-title">Équipement disponible (facultatif)</div>
+
     <div class="chip-group" style="margin-bottom:20px;">
       ${EQUIPEMENTS.map(eq=>`<button type="button" class="chip ${equip.includes(eq.id)?'selected':''}" data-toggle-equip="${eq.id}">${eq.label}</button>`).join('')}
     </div>
@@ -893,6 +928,12 @@ function renderAuth(){
         </div>
       </div>
       <div class="field">
+        <label>Temps que tu es prêt à consacrer chaque jour</label>
+        <div class="chip-group" id="chipTemps">
+          ${TEMPS_OPTIONS.map(t=>`<button type="button" class="chip" data-temps="${t}">${t} min</button>`).join('')}
+        </div>
+      </div>
+      <div class="field">
         <label>Équipement dont tu disposes (facultatif)</label>
         <div class="chip-group" id="chipEquip">
           ${EQUIPEMENTS.map(eq=>`<button type="button" class="chip" data-equip="${eq.id}">${eq.label}</button>`).join('')}
@@ -914,6 +955,12 @@ function renderAuth(){
       btn.classList.add('selected');
       fields.dataset.selectedLieu = btn.dataset.lieu;
     });
+    document.getElementById('chipTemps').addEventListener('click', e=>{
+      const btn = e.target.closest('[data-temps]'); if(!btn) return;
+      [...document.getElementById('chipTemps').children].forEach(c=>c.classList.remove('selected'));
+      btn.classList.add('selected');
+      fields.dataset.selectedTemps = btn.dataset.temps;
+    });
     document.getElementById('chipEquip').addEventListener('click', e=>{
       const btn = e.target.closest('[data-equip]'); if(!btn) return;
       const id = btn.dataset.equip;
@@ -923,6 +970,7 @@ function renderAuth(){
     });
     fields.dataset.selectedObj = '[]';
     fields.dataset.selectedLieu = 'maison';
+    fields.dataset.selectedTemps = '20';
     fields.dataset.selectedEquip = '[]';
   }
 
@@ -950,6 +998,7 @@ function renderAuth(){
       const poids = parseFloat(document.getElementById('fPoids').value);
       const objectifs = JSON.parse(fields.dataset.selectedObj || '[]');
       const lieuPref = fields.dataset.selectedLieu || 'maison';
+      const tempsDispo = parseInt(fields.dataset.selectedTemps || '20', 10);
       const equipements = JSON.parse(fields.dataset.selectedEquip || '[]');
       if(!pseudo){ state.authError = 'Merci de choisir un pseudo.'; render(); return; }
       if(!poids || poids<30 || poids>300){ state.authError = 'Merci d\'indiquer un poids valide (30 à 300 kg).'; render(); return; }
@@ -962,7 +1011,7 @@ function renderAuth(){
       if(!data.user){ state.authBusy=false; state.authError = 'Vérifie ta boîte mail pour confirmer ton compte, puis reviens te connecter.'; state.authMode='login'; render(); return; }
 
       const { error: insertErr } = await supabaseClient.from('profiles').insert({
-        id: data.user.id, pseudo, poids, objectifs, lieu_pref: lieuPref, equipements
+        id: data.user.id, pseudo, poids, objectifs, lieu_pref: lieuPref, temps_dispo: tempsDispo, equipements
       });
       if(insertErr){
         state.authBusy=false;
@@ -993,6 +1042,16 @@ function attachHandlers(u){
   document.querySelectorAll('[data-lieu]').forEach(el=>{
     el.addEventListener('click', async ()=>{
       u.lieuPref = el.dataset.lieu;
+      u.dailyDate = '';
+      ensureDailyChallenge(u);
+      await upsertProfile(u);
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-set-temps]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      u.tempsDispo = parseInt(el.dataset.setTemps, 10);
       u.dailyDate = '';
       ensureDailyChallenge(u);
       await upsertProfile(u);
