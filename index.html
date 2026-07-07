@@ -425,6 +425,7 @@ const EXERCISES = [
   {id:'gainage_lateral', nom:'Gainage latéral', obj:['muscle','tonification','perte'], lieu:['maison','exterieur'], type:'duration', base:30, icon:'muscle', estMin:2, desc:'Appui sur un avant-bras, corps aligné sur le côté, hanches gainées.'},
   {id:'squat_jump', nom:'Squats sautés', obj:['perte','muscle','endurance'], lieu:['maison','exterieur'], type:'reps', base:15, icon:'energy', estMin:3, impact:'high', desc:'Descends en squat puis explose vers le haut en sautant.'},
   {id:'marche_rapide', nom:'Marche rapide', obj:['perte','endurance'], lieu:['exterieur'], type:'distance', base:2, unit:'km', baseTimeMin:20, icon:'energy', estMin:20, desc:'Marche d\'un pas soutenu, sans courir.'},
+  {id:'courir_sur_place', nom:'Courir sur place', obj:['perte','endurance'], lieu:['maison'], type:'duration', base:300, icon:'energy', estMin:5, impact:'high', desc:'Cours sur place à ton rythme, genoux modérément levés, sans te déplacer.'},
 ];
 
 const TEMPS_OPTIONS = [10, 15, 20, 30, 45, 60];
@@ -733,6 +734,7 @@ function render(){
       ${tabBtn('defis','Défis du jour')}
       ${tabBtn('arene','Arène')}
       ${tabBtn('recettes','Recettes')}
+      ${tabBtn('run','Run')}
       ${tabBtn('classement','Classement')}
     </div>
     <div class="view" id="viewport"></div>
@@ -748,6 +750,7 @@ function render(){
   if(state.view==='defis') vp.innerHTML = renderDefis(u);
   if(state.view==='arene') vp.innerHTML = renderArene(u, lvl, next);
   if(state.view==='recettes') vp.innerHTML = renderRecettes(u);
+  if(state.view==='run') vp.innerHTML = renderRun(u);
   if(state.view==='classement') vp.innerHTML = renderClassement(u);
 
   attachHandlers(u);
@@ -805,34 +808,61 @@ function renderDashboard(u, lvl, next, pct){
       <button class="btn-primary" style="margin-top:20px;" data-tab="defis">Voir mes défis du jour</button>
     </div>
   </div>
+  `;
+}
 
-  <div class="card" style="margin-top:22px;">
+function renderRun(u){
+  const gpsIds = ['course','marche_rapide','velo'];
+  const gpsCards = gpsIds.map(id=>{
+    const ex = EXERCISES.find(e=>e.id===id);
+    if(!ex) return '';
+    if(ex.equip && !(u.equipements||[]).includes(ex.equip)) return '';
+    const target = computeTarget(ex, u.poids, u);
+    const trackingThis = state.gps && state.gps.exId===id;
+    return `
+    <div class="ex-card">
+      <div class="ex-icon ${ex.icon}">${iconSvg(ex.icon==='muscle'?'dumbbell':'flame')}</div>
+      <div class="ex-body">
+        <p class="ex-name">${ex.nom}</p>
+        <p class="ex-target">${target.display}</p>
+      </div>
+      <div class="ex-actions">
+        ${trackingThis
+          ? `<span class="badge-done" style="color:var(--muscle);">📍 Suivi en cours</span>`
+          : `<button class="btn-small go" data-gps-start="${id}">▶ Commencer</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  const surPlace = EXERCISES.find(e=>e.id==='courir_sur_place');
+  const surPlaceTarget = computeTarget(surPlace, u.poids, u);
+  const surPlaceDone = false; // pas de notion de "done" ici, c'est une activité libre
+  const surPlaceCooldownOk = (Date.now() - (u.cooldowns['courir_sur_place']||0)) >= 4*60*60*1000;
+
+  return `
     <h3>🏃 RUN — à tout moment</h3>
-    <p style="color:var(--chalk-dim); font-size:13px; margin:0 0 16px;">Envie de courir, rouler ou marcher là, maintenant ? Pas besoin d'attendre que ce soit dans tes défis du jour — lance le suivi en direct quand tu veux, tu gagnes quand même tes points.</p>
+    <p style="color:var(--muted); font-size:12.5px; margin:-8px 0 18px;">Envie de courir, rouler ou marcher là, maintenant ? Pas besoin d'attendre que ce soit dans tes défis du jour — lance le suivi en direct (avec distance, vitesse et calories) quand tu veux, tu gagnes quand même tes points.</p>
+    <div class="section-title">En extérieur (suivi GPS en direct)</div>
+    <div class="challenge-list">${gpsCards || '<div class="empty">Coche "Vélo" dans tes équipements si tu veux le voir apparaître ici.</div>'}</div>
+
+    <div class="section-title" style="margin-top:22px;">À la maison (sans GPS)</div>
     <div class="challenge-list">
-      ${['course','marche_rapide','velo'].map(id=>{
-        const ex = EXERCISES.find(e=>e.id===id);
-        if(!ex) return '';
-        if(ex.equip && !(u.equipements||[]).includes(ex.equip)) return '';
-        const target = computeTarget(ex, u.poids, u);
-        const trackingThis = state.gps && state.gps.exId===id;
-        return `
-        <div class="ex-card">
-          <div class="ex-icon ${ex.icon}">${iconSvg(ex.icon==='muscle'?'dumbbell':'flame')}</div>
-          <div class="ex-body">
-            <p class="ex-name">${ex.nom}</p>
-            <p class="ex-target">${target.display}</p>
-          </div>
-          <div class="ex-actions">
-            ${trackingThis
-              ? `<span class="badge-done" style="color:var(--muscle);">📍 Suivi en cours</span>`
-              : `<button class="btn-small go" data-gps-start="${id}">▶ Commencer</button>`
-            }
-          </div>
-        </div>`;
-      }).join('')}
+      <div class="ex-card">
+        <div class="ex-icon ${surPlace.icon}">${iconSvg('flame')}</div>
+        <div class="ex-body">
+          <p class="ex-name">${surPlace.nom}</p>
+          <p class="ex-target">${surPlaceTarget.display}</p>
+          <p class="ex-meta">${surPlace.desc}</p>
+        </div>
+        <div class="ex-actions">
+          ${surPlaceCooldownOk
+            ? `<button class="btn-small go" data-validate="courir_sur_place">Terminé →</button>`
+            : `<span class="badge-done" style="color:var(--muscle);">${iconSvg('medal')} Fait récemment</span>`
+          }
+        </div>
+      </div>
     </div>
-  </div>
   `;
 }
 
