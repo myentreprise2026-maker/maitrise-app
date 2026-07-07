@@ -417,13 +417,13 @@ const EXERCISES = [
   {id:'tractions', nom:'Tractions', obj:['muscle'], lieu:['exterieur'], type:'reps', base:6, icon:'muscle', estMin:3, desc:'Barre fixe, tire jusqu\'au menton au-dessus.', equip:'barre'},
   {id:'abdos', nom:'Crunchs', obj:['tonification','muscle'], lieu:['maison','exterieur'], type:'reps', base:25, icon:'muscle', estMin:3, desc:'Bas du dos au sol, contraction courte et contrôlée.'},
   {id:'yoga', nom:'Yoga flow', obj:['tonification','endurance'], lieu:['maison'], type:'duration', base:600, icon:'energy', estMin:10, desc:'Enchaînement de postures, respiration lente.'},
-  {id:'jumping_jacks', nom:'Jumping jacks', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:120, icon:'energy', estMin:3, desc:'Saute en écartant bras et jambes, puis reviens en position de départ.'},
-  {id:'burpees', nom:'Burpees', obj:['perte','muscle','endurance'], lieu:['maison','exterieur'], type:'reps', base:12, icon:'muscle', estMin:4, desc:'Squat, pompe, puis saut vertical — enchaîne les trois sans t\'arrêter.'},
-  {id:'montee_genoux', nom:'Montées de genoux', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:90, icon:'energy', estMin:3, desc:'Cours sur place en montant les genoux le plus haut possible.'},
-  {id:'mountain_climbers', nom:'Mountain climbers', obj:['perte','tonification','endurance'], lieu:['maison','exterieur'], type:'duration', base:60, icon:'muscle', estMin:3, desc:'Position de pompe, ramène alternativement les genoux vers la poitrine rapidement.'},
-  {id:'talons_fesses', nom:'Talons-fesses', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:90, icon:'energy', estMin:3, desc:'Cours sur place en amenant les talons vers les fessiers.'},
+  {id:'jumping_jacks', nom:'Jumping jacks', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:120, icon:'energy', estMin:3, impact:'high', desc:'Saute en écartant bras et jambes, puis reviens en position de départ.'},
+  {id:'burpees', nom:'Burpees', obj:['perte','muscle','endurance'], lieu:['maison','exterieur'], type:'reps', base:12, icon:'muscle', estMin:4, impact:'high', desc:'Squat, pompe, puis saut vertical — enchaîne les trois sans t\'arrêter.'},
+  {id:'montee_genoux', nom:'Montées de genoux', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:90, icon:'energy', estMin:3, impact:'high', desc:'Cours sur place en montant les genoux le plus haut possible.'},
+  {id:'mountain_climbers', nom:'Mountain climbers', obj:['perte','tonification','endurance'], lieu:['maison','exterieur'], type:'duration', base:60, icon:'muscle', estMin:3, impact:'high', desc:'Position de pompe, ramène alternativement les genoux vers la poitrine rapidement.'},
+  {id:'talons_fesses', nom:'Talons-fesses', obj:['perte','endurance'], lieu:['maison','exterieur'], type:'duration', base:90, icon:'energy', estMin:3, impact:'high', desc:'Cours sur place en amenant les talons vers les fessiers.'},
   {id:'gainage_lateral', nom:'Gainage latéral', obj:['muscle','tonification','perte'], lieu:['maison','exterieur'], type:'duration', base:30, icon:'muscle', estMin:2, desc:'Appui sur un avant-bras, corps aligné sur le côté, hanches gainées.'},
-  {id:'squat_jump', nom:'Squats sautés', obj:['perte','muscle','endurance'], lieu:['maison','exterieur'], type:'reps', base:15, icon:'energy', estMin:3, desc:'Descends en squat puis explose vers le haut en sautant.'},
+  {id:'squat_jump', nom:'Squats sautés', obj:['perte','muscle','endurance'], lieu:['maison','exterieur'], type:'reps', base:15, icon:'energy', estMin:3, impact:'high', desc:'Descends en squat puis explose vers le haut en sautant.'},
   {id:'marche_rapide', nom:'Marche rapide', obj:['perte','endurance'], lieu:['exterieur'], type:'distance', base:2, unit:'km', baseTimeMin:20, icon:'energy', estMin:20, desc:'Marche d\'un pas soutenu, sans courir.'},
 ];
 
@@ -493,6 +493,9 @@ function mapRowToUser(row){
     id: row.id,
     pseudo: row.pseudo,
     poids: row.poids,
+    age: row.age || null,
+    taille: row.taille || null,
+    niveau: row.niveau || 'moyen',
     objectifs: row.objectifs || [],
     lieuPref: row.lieu_pref || 'maison',
     equipements: row.equipements || [],
@@ -509,6 +512,9 @@ function mapRowToUser(row){
 function mapUserToRow(u){
   return {
     poids: u.poids,
+    age: u.age,
+    taille: u.taille,
+    niveau: u.niveau,
     objectifs: u.objectifs,
     lieu_pref: u.lieuPref,
     equipements: u.equipements,
@@ -541,17 +547,52 @@ async function fetchLeaderboard(){
 /* =========================================================
    LOGIQUE D'AJUSTEMENT AU POIDS
    ========================================================= */
-function adjustReps(base, poids){
+const NIVEAU_FACTOR = { facile:0.75, moyen:1, difficile:1.3 };
+
+function computeIMC(poids, tailleCm){
+  if(!tailleCm || tailleCm<=0) return null;
+  const m = tailleCm/100;
+  return poids / (m*m);
+}
+function imcCategory(imc){
+  if(imc==null) return 'normal';
+  if(imc < 18.5) return 'insuffisance';
+  if(imc < 25) return 'normal';
+  if(imc < 30) return 'surpoids';
+  return 'obesite';
+}
+function suggestNiveau(age, imc){
+  const cat = imcCategory(imc);
+  if(cat==='obesite' || cat==='insuffisance') return 'facile';
+  if(age!=null && (age < 14 || age > 60)) return 'facile';
+  if(cat==='surpoids' || (age!=null && age > 45)) return 'moyen';
+  return 'moyen';
+}
+function safetyFactor(u){
+  const imc = computeIMC(u.poids, u.taille);
+  const cat = imcCategory(imc);
+  let f = 1;
+  if(cat==='obesite' || cat==='insuffisance') f *= 0.85;
+  if(u.age!=null && (u.age < 14 || u.age > 60)) f *= 0.85;
+  return f;
+}
+function adjustReps(base, poids, u){
   const factor = Math.pow(60/poids, 0.75);
-  return Math.max(5, Math.round(base*factor));
+  const niveau = (u && NIVEAU_FACTOR[u.niveau]) || 1;
+  const safety = u ? safetyFactor(u) : 1;
+  return Math.max(5, Math.round(base*factor*niveau*safety));
 }
-function adjustDurationDown(base, poids){
+function adjustDurationDown(base, poids, u){
   const factor = Math.pow(60/poids, 0.6);
-  return Math.max(15, Math.round(base*factor));
+  const niveau = (u && NIVEAU_FACTOR[u.niveau]) || 1;
+  const safety = u ? safetyFactor(u) : 1;
+  return Math.max(15, Math.round(base*factor*niveau*safety));
 }
-function adjustTimeAllowed(baseMin, poids){
+function adjustTimeAllowed(baseMin, poids, u){
   const factor = Math.pow(poids/60, 0.5);
-  return Math.round(baseMin*factor*10)/10;
+  const niveau = (u && NIVEAU_FACTOR[u.niveau]) || 1;
+  const safety = u ? safetyFactor(u) : 1;
+  return Math.round(baseMin*factor/(niveau*safety)*10)/10;
 }
 function haversineKm(lat1, lon1, lat2, lon2){
   const R = 6371;
@@ -561,15 +602,15 @@ function haversineKm(lat1, lon1, lat2, lon2){
   const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R*c;
 }
-function computeTarget(ex, poids){
-  if(ex.type==='reps') return {display: adjustReps(ex.base, poids)+' répétitions'};
+function computeTarget(ex, poids, u){
+  if(ex.type==='reps') return {display: adjustReps(ex.base, poids, u)+' répétitions'};
   if(ex.type==='duration'){
     if(ex.id==='yoga') return {display: Math.round(ex.base/60)+' min (identique pour tous)'};
-    const s = adjustDurationDown(ex.base, poids);
+    const s = adjustDurationDown(ex.base, poids, u);
     return {display: s>=60 ? Math.round(s/6)/10+' min' : s+' s'};
   }
   if(ex.type==='distance'){
-    const t = adjustTimeAllowed(ex.baseTimeMin, poids);
+    const t = adjustTimeAllowed(ex.baseTimeMin, poids, u);
     return {display: ex.base+' '+ex.unit+' en '+t+' min max'};
   }
   return {display:''};
@@ -582,11 +623,17 @@ function levelIndexForPoints(pts){
 function eligiblePool(u){
   const equip = u.equipements || [];
   const lieu = u.lieuPref || 'maison';
-  return EXERCISES.filter(e =>
+  const base = EXERCISES.filter(e =>
     u.objectifs.some(o=>e.obj.includes(o)) &&
     (lieu==='les_deux' || e.lieu.includes(lieu)) &&
     (!e.equip || equip.includes(e.equip))
   );
+  const imc = computeIMC(u.poids, u.taille);
+  const cat = imcCategory(imc);
+  const fragile = cat==='obesite' || cat==='insuffisance' || (u.age!=null && (u.age < 14 || u.age > 60));
+  if(!fragile) return base;
+  const gentle = base.filter(e => e.impact !== 'high');
+  return gentle.length ? gentle : base;
 }
 function todayKey(){ return new Date().toISOString().slice(0,10); }
 function ensureDailyChallenge(u){
@@ -637,6 +684,14 @@ function showToast(msg){
   setTimeout(()=>{ state.toast=null; render(); }, 2600);
 }
 
+function logoSvg(size){
+  const s = size || 20;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none">
+    <path d="M2 18.5L7 9L10.3 14L14 6L18 13L22 18.5H2Z" fill="#14161a"/>
+    <path d="M14.2 6c.8 1.2-.7 1.5-.7 2.7a1.5 1.5 0 003 0c0-.7-.4-1.1-.4-1.1s.8.4.8 1.9a2.6 2.6 0 11-5.2 0c0-1.9 1.5-2.3 2.5-3.5z" fill="#ff6a3d"/>
+  </svg>`;
+}
+
 function iconSvg(kind){
   if(kind==='flame') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2c1 3-2 4-2 7a4 4 0 008 0c0-2-1-3-1-3s2 1 2 5a7 7 0 11-14 0c0-5 4-6 7-9z" fill="currentColor"/></svg>`;
   if(kind==='dumbbell') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 9v6M2 10v4M20 9v6M22 10v4M8 8v8M16 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -661,7 +716,7 @@ function render(){
   root.innerHTML = `
     <div class="topbar">
       <div class="brand">
-        <div class="mark">M</div>
+        <div class="mark">${logoSvg(20)}</div>
         <div>
           <h1>MAÎTRISE</h1>
           <div class="tagline">Ligue Fitness</div>
@@ -717,6 +772,9 @@ function renderDashboard(u, lvl, next, pct){
       </div>
       <div style="margin-top:22px;">
         <div class="stat-row"><span class="k">Poids déclaré</span><span class="v">${u.poids} kg</span></div>
+        <div class="stat-row"><span class="k">Âge</span><span class="v">${u.age||'—'} ans</span></div>
+        <div class="stat-row"><span class="k">Taille</span><span class="v">${u.taille||'—'} cm</span></div>
+        <div class="stat-row"><span class="k">Niveau</span><span class="v">${({facile:'Facile',moyen:'Moyen',difficile:'Difficile'})[u.niveau||'moyen']}</span></div>
         <div class="stat-row"><span class="k">Objectifs</span><span class="v">${u.objectifs.map(o=>OBJ_LABEL[o]).join(', ')}</span></div>
         <div class="stat-row"><span class="k">Lieu préféré</span><span class="v">${u.lieuPref==='exterieur'?'Extérieur':u.lieuPref==='les_deux'?'Les deux':'Maison'}</span></div>
         <div class="stat-row"><span class="k">Défis validés (total)</span><span class="v">${u.totalValidations||0}</span></div>
@@ -733,7 +791,7 @@ function renderDashboard(u, lvl, next, pct){
         <div class="ex-icon muscle">${iconSvg('dumbbell')}</div>
         <div class="ex-body">
           <p class="ex-name">Pompes</p>
-          <p class="ex-target">${computeTarget(EXERCISES.find(e=>e.id==='pompes'), u.poids).display}</p>
+          <p class="ex-target">${computeTarget(EXERCISES.find(e=>e.id==='pompes'), u.poids, u).display}</p>
         </div>
       </div>
       <div class="section-title" style="margin-top:16px;">Aperçu — Course à ton poids</div>
@@ -741,7 +799,7 @@ function renderDashboard(u, lvl, next, pct){
         <div class="ex-icon">${iconSvg('flame')}</div>
         <div class="ex-body">
           <p class="ex-name">Course à pied</p>
-          <p class="ex-target">${computeTarget(EXERCISES.find(e=>e.id==='course'), u.poids).display}</p>
+          <p class="ex-target">${computeTarget(EXERCISES.find(e=>e.id==='course'), u.poids, u).display}</p>
         </div>
       </div>
       <button class="btn-primary" style="margin-top:20px;" data-tab="defis">Voir mes défis du jour</button>
@@ -754,7 +812,7 @@ function renderDefis(u){
   const equip = u.equipements || [];
   const list = (u.dailyExercises||[]).map(id=>EXERCISES.find(e=>e.id===id)).filter(Boolean);
   const rows = list.map(ex=>{
-    const target = computeTarget(ex, u.poids);
+    const target = computeTarget(ex, u.poids, u);
     const done = !!(u.doneToday && u.doneToday[ex.id]);
     return `
     <div class="ex-card">
@@ -808,6 +866,12 @@ function renderDefis(u){
     <div class="section-title">Temps disponible par jour</div>
     <div class="chip-group" style="margin-bottom:20px;">
       ${TEMPS_OPTIONS.map(t=>`<button type="button" class="chip ${((u.tempsDispo||20)===t)?'selected':''}" data-set-temps="${t}">${t} min</button>`).join('')}
+    </div>
+    <div class="section-title">Niveau</div>
+    <div class="chip-group" style="margin-bottom:20px;">
+      <button type="button" class="chip ${(u.niveau||'moyen')==='facile'?'selected':''}" data-set-niveau="facile">Facile</button>
+      <button type="button" class="chip ${(u.niveau||'moyen')==='moyen'?'selected':''}" data-set-niveau="moyen">Moyen</button>
+      <button type="button" class="chip ${(u.niveau||'moyen')==='difficile'?'selected':''}" data-set-niveau="difficile">Difficile</button>
     </div>
     <div class="section-title">Équipement disponible (facultatif)</div>
 
@@ -972,6 +1036,7 @@ function renderAuth(){
   root.innerHTML = `
   <div class="login-wrap">
     <div class="login-card">
+      <div class="mark" style="margin-bottom:14px; width:44px; height:44px; position:relative;">${logoSvg(26)}</div>
       <p class="login-title">MAÎTRISE</p>
       <p class="login-sub">MAÎTRISE est une ligue de fitness qui transforme ton entraînement en jeu. Crée un compte, choisis tes objectifs (perte de poids, prise de muscle, endurance, tonification), et reçois chaque jour des défis calculés spécialement pour ton poids — pas les mêmes répétitions pour tout le monde, mais le même effort demandé à chacun. Valide tes exercices avec ton coach IA, monte les rangs (de Recrue à Légende), et grimpe dans le classement partagé avec les autres athlètes de la ligue.</p>
       ${state.authError ? `<div class="auth-error">${state.authError}</div>` : ''}
@@ -998,6 +1063,16 @@ function renderAuth(){
       <div class="field"><label>Email</label><input id="fEmail" type="email" /></div>
       <div class="field"><label>Mot de passe (6 caractères minimum)</label><input id="fPass" type="password" /></div>
       <div class="field"><label>Poids (kg)</label><input id="fPoids" type="number" min="30" max="300" placeholder="ex : 72" /></div>
+      <div class="field"><label>Âge</label><input id="fAge" type="number" min="12" max="100" placeholder="ex : 28" /></div>
+      <div class="field"><label>Taille (cm)</label><input id="fTaille" type="number" min="100" max="250" placeholder="ex : 175" /></div>
+      <div class="field">
+        <label>Niveau de départ (modifiable à tout moment)</label>
+        <div class="chip-group" id="chipNiveau">
+          <button type="button" class="chip" data-niveau="facile">Facile</button>
+          <button type="button" class="chip" data-niveau="moyen">Moyen</button>
+          <button type="button" class="chip" data-niveau="difficile">Difficile</button>
+        </div>
+      </div>
       <div class="field">
         <label>Objectifs (plusieurs choix possibles)</label>
         <div class="chip-group" id="chipObjectifs">
@@ -1053,10 +1128,17 @@ function renderAuth(){
       else{ selectedEquip.add(id); btn.classList.add('selected'); }
       fields.dataset.selectedEquip = JSON.stringify([...selectedEquip]);
     });
+    document.getElementById('chipNiveau').addEventListener('click', e=>{
+      const btn = e.target.closest('[data-niveau]'); if(!btn) return;
+      [...document.getElementById('chipNiveau').children].forEach(c=>c.classList.remove('selected'));
+      btn.classList.add('selected');
+      fields.dataset.selectedNiveau = btn.dataset.niveau;
+    });
     fields.dataset.selectedObj = '[]';
     fields.dataset.selectedLieu = 'maison';
     fields.dataset.selectedTemps = '20';
     fields.dataset.selectedEquip = '[]';
+    fields.dataset.selectedNiveau = 'moyen';
   }
 
   document.getElementById('toggleMode').addEventListener('click', ()=>{
@@ -1081,13 +1163,22 @@ function renderAuth(){
     } else {
       const pseudo = document.getElementById('fPseudo').value.trim();
       const poids = parseFloat(document.getElementById('fPoids').value);
+      const age = parseInt(document.getElementById('fAge').value, 10);
+      const taille = parseFloat(document.getElementById('fTaille').value);
       const objectifs = JSON.parse(fields.dataset.selectedObj || '[]');
       const lieuPref = fields.dataset.selectedLieu || 'maison';
       const tempsDispo = parseInt(fields.dataset.selectedTemps || '20', 10);
       const equipements = JSON.parse(fields.dataset.selectedEquip || '[]');
+      let niveau = fields.dataset.selectedNiveau || 'moyen';
       if(!pseudo){ state.authError = 'Merci de choisir un pseudo.'; render(); return; }
       if(!poids || poids<30 || poids>300){ state.authError = 'Merci d\'indiquer un poids valide (30 à 300 kg).'; render(); return; }
+      if(!age || age<12 || age>100){ state.authError = 'Merci d\'indiquer un âge valide (12 à 100 ans).'; render(); return; }
+      if(!taille || taille<100 || taille>250){ state.authError = 'Merci d\'indiquer une taille valide (100 à 250 cm).'; render(); return; }
       if(objectifs.length===0){ state.authError = 'Choisis au moins un objectif.'; render(); return; }
+
+      if(!fields.dataset.selectedNiveau){
+        niveau = suggestNiveau(age, computeIMC(poids, taille));
+      }
 
       state.authBusy = true; state.authError=''; render();
 
@@ -1096,7 +1187,7 @@ function renderAuth(){
       if(!data.user){ state.authBusy=false; state.authError = 'Vérifie ta boîte mail pour confirmer ton compte, puis reviens te connecter.'; state.authMode='login'; render(); return; }
 
       const { error: insertErr } = await supabaseClient.from('profiles').insert({
-        id: data.user.id, pseudo, poids, objectifs, lieu_pref: lieuPref, temps_dispo: tempsDispo, equipements
+        id: data.user.id, pseudo, poids, age, taille, niveau, objectifs, lieu_pref: lieuPref, temps_dispo: tempsDispo, equipements
       });
       if(insertErr){
         state.authBusy=false;
@@ -1140,6 +1231,14 @@ function attachHandlers(u){
       u.tempsDispo = parseInt(el.dataset.setTemps, 10);
       u.dailyDate = '';
       ensureDailyChallenge(u);
+      await upsertProfile(u);
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-set-niveau]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      u.niveau = el.dataset.setNiveau;
       await upsertProfile(u);
       render();
     });
@@ -1399,7 +1498,7 @@ async function sendToCoach(text){
 
   const systemPrompt = `Tu es "Coach", un coach sportif motivant et bienveillant intégré à une application française de fitness gamifiée nommée MAÎTRISE.
 Contexte de l'athlète : pseudo ${u.pseudo}, poids ${u.poids} kg, objectifs : ${u.objectifs.map(o=>OBJ_LABEL[o]).join(', ')}, rang actuel : ${lvl.name}, points : ${u.points}.
-${exContext ? `L'athlète est en train de faire valider l'exercice "${exContext.nom}" (cible ajustée à son poids : ${computeTarget(exContext, u.poids).display}).` : `Aucun exercice n'est en cours de validation, discute librement (motivation, conseils, nutrition liée à ses objectifs).`}
+${exContext ? `L'athlète est en train de faire valider l'exercice "${exContext.nom}" (cible ajustée à son poids : ${computeTarget(exContext, u.poids, u).display}).` : `Aucun exercice n'est en cours de validation, discute librement (motivation, conseils, nutrition liée à ses objectifs).`}
 
 Ton rôle :
 1. Sois chaleureux, direct, jamais moralisateur. Tutoiement.
