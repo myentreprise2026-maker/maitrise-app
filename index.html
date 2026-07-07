@@ -480,6 +480,48 @@ const RECIPES = [
 ];
 
 const OBJ_LABEL = Object.fromEntries(OBJECTIFS.map(o=>[o.id,o.label]));
+
+const THEMES = {
+  orange:  { label:'Orange',  energy:'#ff6a3d', energyDim:'rgba(255,106,61,0.16)', maitre:'#e4572e' },
+  bleu:    { label:'Bleu',    energy:'#3d8bff', energyDim:'rgba(61,139,255,0.16)', maitre:'#2e57e4' },
+  vert:    { label:'Vert',    energy:'#2ecf7a', energyDim:'rgba(46,207,122,0.16)', maitre:'#1f9e5c' },
+  violet:  { label:'Violet',  energy:'#a855f7', energyDim:'rgba(168,85,247,0.16)', maitre:'#7c3aed' },
+  rose:    { label:'Rose',    energy:'#ff5da3', energyDim:'rgba(255,93,163,0.16)', maitre:'#e42e7a' },
+};
+
+const LANGUES = [
+  {id:'fr', label:'Français'},
+  {id:'en', label:'English'},
+  {id:'es', label:'Español'},
+  {id:'ar', label:'العربية'},
+  {id:'pt', label:'Português'},
+  {id:'de', label:'Deutsch'},
+  {id:'it', label:'Italiano'},
+  {id:'tr', label:'Türkçe'},
+];
+
+const TRANSLATIONS = {
+  fr:{ dashboard:'Tableau de bord', defis:'Défis du jour', arene:'Arène', recettes:'Recettes', run:'Run', classement:'Classement', parametres:'Paramètres', deconnexion:'Déconnexion', termine:'Terminé', commencer:'Commencer', annuler:'Annuler', enregistrer:'Enregistrer', valider:'Valider', seConnecter:'Se connecter', creerCompte:'Créer un compte' },
+  en:{ dashboard:'Dashboard', defis:'Daily challenges', arene:'Arena', recettes:'Recipes', run:'Run', classement:'Leaderboard', parametres:'Settings', deconnexion:'Log out', termine:'Done', commencer:'Start', annuler:'Cancel', enregistrer:'Save', valider:'Validate', seConnecter:'Log in', creerCompte:'Create account' },
+  es:{ dashboard:'Panel', defis:'Retos del día', arene:'Arena', recettes:'Recetas', run:'Correr', classement:'Clasificación', parametres:'Ajustes', deconnexion:'Cerrar sesión', termine:'Hecho', commencer:'Empezar', annuler:'Cancelar', enregistrer:'Guardar', valider:'Validar', seConnecter:'Iniciar sesión', creerCompte:'Crear cuenta' },
+  ar:{ dashboard:'لوحة التحكم', defis:'تحديات اليوم', arene:'الساحة', recettes:'وصفات', run:'الجري', classement:'الترتيب', parametres:'الإعدادات', deconnexion:'تسجيل الخروج', termine:'تم', commencer:'ابدأ', annuler:'إلغاء', enregistrer:'حفظ', valider:'تأكيد', seConnecter:'تسجيل الدخول', creerCompte:'إنشاء حساب' },
+  pt:{ dashboard:'Painel', defis:'Desafios do dia', arene:'Arena', recettes:'Receitas', run:'Corrida', classement:'Classificação', parametres:'Configurações', deconnexion:'Sair', termine:'Concluído', commencer:'Começar', annuler:'Cancelar', enregistrer:'Salvar', valider:'Validar', seConnecter:'Entrar', creerCompte:'Criar conta' },
+  de:{ dashboard:'Übersicht', defis:'Tägliche Aufgaben', arene:'Arena', recettes:'Rezepte', run:'Laufen', classement:'Rangliste', parametres:'Einstellungen', deconnexion:'Abmelden', termine:'Fertig', commencer:'Starten', annuler:'Abbrechen', enregistrer:'Speichern', valider:'Bestätigen', seConnecter:'Anmelden', creerCompte:'Konto erstellen' },
+  it:{ dashboard:'Bacheca', defis:'Sfide del giorno', arene:'Arena', recettes:'Ricette', run:'Corsa', classement:'Classifica', parametres:'Impostazioni', deconnexion:'Disconnetti', termine:'Fatto', commencer:'Inizia', annuler:'Annulla', enregistrer:'Salva', valider:'Conferma', seConnecter:'Accedi', creerCompte:'Crea account' },
+  tr:{ dashboard:'Panel', defis:'Günlük görevler', arene:'Arena', recettes:'Tarifler', run:'Koşu', classement:'Sıralama', parametres:'Ayarlar', deconnexion:'Çıkış yap', termine:'Tamamlandı', commencer:'Başla', annuler:'İptal', enregistrer:'Kaydet', valider:'Onayla', seConnecter:'Giriş yap', creerCompte:'Hesap oluştur' },
+};
+
+function t(key){
+  const lang = (me() && me().langue) || 'fr';
+  return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS.fr[key] || key;
+}
+
+function applyTheme(themeId){
+  const theme = THEMES[themeId] || THEMES.orange;
+  document.documentElement.style.setProperty('--energy', theme.energy);
+  document.documentElement.style.setProperty('--energy-dim', theme.energyDim);
+  document.documentElement.style.setProperty('--maitre', theme.maitre);
+}
 const EQUIPEMENTS = [
   {id:'velo', label:'Vélo'},
   {id:'barre', label:'Barre de traction'},
@@ -501,6 +543,9 @@ function mapRowToUser(row){
     lieuPref: row.lieu_pref || 'maison',
     equipements: row.equipements || [],
     tempsDispo: row.temps_dispo || 20,
+    theme: row.theme || 'orange',
+    langue: row.langue || 'fr',
+    avatarData: row.avatar_data || null,
     points: row.points || 0,
     totalValidations: row.total_validations || 0,
     doneToday: row.done_today || {},
@@ -520,6 +565,9 @@ function mapUserToRow(u){
     lieu_pref: u.lieuPref,
     equipements: u.equipements,
     temps_dispo: u.tempsDispo,
+    theme: u.theme,
+    langue: u.langue,
+    avatar_data: u.avatarData,
     points: u.points,
     total_validations: u.totalValidations,
     done_today: u.doneToday,
@@ -679,6 +727,67 @@ function me(){ return state.profile; }
    ========================================================= */
 const root = document.getElementById('root');
 
+function applyCartoonFilter(ctx, size){
+  const imgData = ctx.getImageData(0,0,size,size);
+  const data = imgData.data;
+  const gray = new Float32Array(size*size);
+  for(let i=0;i<size*size;i++){
+    const r=data[i*4], g=data[i*4+1], b=data[i*4+2];
+    gray[i] = 0.299*r + 0.587*g + 0.114*b;
+  }
+  const edges = new Uint8Array(size*size);
+  const gxKernel = [-1,0,1,-2,0,2,-1,0,1];
+  const gyKernel = [-1,-2,-1,0,0,0,1,2,1];
+  for(let y=1;y<size-1;y++){
+    for(let x=1;x<size-1;x++){
+      let gx=0, gy=0, k=0;
+      for(let ky=-1;ky<=1;ky++){
+        for(let kx=-1;kx<=1;kx++){
+          const val = gray[(y+ky)*size+(x+kx)];
+          gx += val*gxKernel[k]; gy += val*gyKernel[k]; k++;
+        }
+      }
+      const mag = Math.sqrt(gx*gx+gy*gy);
+      edges[y*size+x] = mag > 90 ? 1 : 0;
+    }
+  }
+  const levels = 5;
+  const step = 255/(levels-1);
+  for(let i=0;i<size*size;i++){
+    const idx = i*4;
+    if(edges[i]===1){
+      data[idx]=25; data[idx+1]=25; data[idx+2]=25;
+    } else {
+      data[idx]   = Math.round(Math.round(data[idx]/step)*step);
+      data[idx+1] = Math.round(Math.round(data[idx+1]/step)*step);
+      data[idx+2] = Math.round(Math.round(data[idx+2]/step)*step);
+    }
+  }
+  ctx.putImageData(imgData,0,0);
+}
+
+function resizeImageToDataUrl(file, size, cartoon){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const minSide = Math.min(img.width, img.height);
+      const sx = (img.width - minSide)/2;
+      const sy = (img.height - minSide)/2;
+      ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+      if(cartoon) applyCartoonFilter(ctx, size);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function showToast(msg){
   state.toast = msg;
   render();
@@ -708,6 +817,7 @@ function render(){
   const u = me();
   if(!u){ renderAuth(); return; }
   ensureDailyChallenge(u);
+  applyTheme(u.theme);
 
   const lvlIdx = levelIndexForPoints(u.points);
   const lvl = LEVELS[lvlIdx];
@@ -725,17 +835,18 @@ function render(){
       </div>
       <div class="topbar-right">
         <div class="pill">${iconSvg('flame')} <strong>${u.points}</strong> pts</div>
-        <div class="pill">${u.pseudo}</div>
-        <button class="btn-logout" id="btnLogout">Déconnexion</button>
+        <div class="pill">${u.avatarData ? `<img src="${u.avatarData}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;">` : ''} ${u.pseudo}</div>
+        <button class="btn-logout" id="btnLogout">${t('deconnexion')}</button>
       </div>
     </div>
     <div class="tabs">
-      ${tabBtn('dashboard','Tableau de bord')}
-      ${tabBtn('defis','Défis du jour')}
-      ${tabBtn('arene','Arène')}
-      ${tabBtn('recettes','Recettes')}
-      ${tabBtn('run','Run')}
-      ${tabBtn('classement','Classement')}
+      ${tabBtn('dashboard', t('dashboard'))}
+      ${tabBtn('defis', t('defis'))}
+      ${tabBtn('arene', t('arene'))}
+      ${tabBtn('recettes', t('recettes'))}
+      ${tabBtn('run', t('run'))}
+      ${tabBtn('classement', t('classement'))}
+      ${tabBtn('parametres', t('parametres'))}
     </div>
     <div class="view" id="viewport"></div>
     <p style="text-align:center; font-size:11px; color:var(--muted); padding:0 22px 30px;">MAÎTRISE — application créée par <b style="color:var(--chalk-dim);">Wael Daoudi</b></p>
@@ -752,6 +863,7 @@ function render(){
   if(state.view==='recettes') vp.innerHTML = renderRecettes(u);
   if(state.view==='run') vp.innerHTML = renderRun(u);
   if(state.view==='classement') vp.innerHTML = renderClassement(u);
+  if(state.view==='parametres') vp.innerHTML = renderParametres(u);
 
   attachHandlers(u);
 }
@@ -1067,6 +1179,64 @@ function renderClassement(u){
   `;
 }
 
+function renderParametres(u){
+  return `
+    <h3>Paramètres</h3>
+    <p style="color:var(--muted); font-size:12.5px; margin:-8px 0 22px;">Modifie tes informations, la couleur du site, la langue, et ta photo de profil.</p>
+
+    <div class="card">
+      <h3 style="margin-bottom:16px;">Profil</h3>
+      <div style="display:flex; align-items:center; gap:18px; margin-bottom:20px;">
+        <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; background:var(--ink-2); border:2px solid var(--line-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          ${u.avatarData ? `<img src="${u.avatarData}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:var(--muted); font-size:11px;">Aucune</span>`}
+        </div>
+        <div>
+          <label class="btn-small" style="cursor:pointer; display:inline-block;">
+            Choisir une photo
+            <input type="file" id="fAvatarUpload" accept="image/*" style="display:none;">
+          </label>
+          <p style="font-size:11px; color:var(--muted); margin-top:6px;">Recadrée automatiquement en cercle.</p>
+          <label style="display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; color:var(--chalk-dim); cursor:pointer;">
+            <input type="checkbox" id="fCartoonFilter">
+            Appliquer un filtre cartoon (contours + couleurs simplifiées)
+          </label>
+        </div>
+      </div>
+
+      <div class="field"><label>Pseudo</label><input value="${u.pseudo}" disabled style="opacity:0.6;"></div>
+      <div class="field"><label>Poids (kg)</label><input id="pPoids" type="number" min="30" max="300" value="${u.poids}"></div>
+      <div class="field"><label>Âge</label><input id="pAge" type="number" min="12" max="100" value="${u.age||''}"></div>
+      <div class="field"><label>Taille (cm)</label><input id="pTaille" type="number" min="100" max="250" value="${u.taille||''}"></div>
+      <div class="field">
+        <label>Objectifs</label>
+        <div class="chip-group" id="pObjectifs">
+          ${OBJECTIFS.map(o=>`<button type="button" class="chip ${u.objectifs.includes(o.id)?'selected':''}" data-pobj="${o.id}">${o.label}</button>`).join('')}
+        </div>
+      </div>
+      <button class="btn-primary" id="btnSaveProfil" style="margin-top:10px;">${t('enregistrer')}</button>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h3 style="margin-bottom:16px;">Couleur du site</h3>
+      <div class="chip-group">
+        ${Object.entries(THEMES).map(([id,th])=>`
+          <button type="button" class="chip ${u.theme===id?'selected':''}" data-set-theme="${id}" style="display:flex; align-items:center; gap:7px;">
+            <span style="width:12px; height:12px; border-radius:50%; background:${th.energy}; display:inline-block;"></span>${th.label}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h3 style="margin-bottom:16px;">Langue de l'interface</h3>
+      <div class="chip-group">
+        ${LANGUES.map(l=>`<button type="button" class="chip ${u.langue===l.id?'selected':''}" data-set-langue="${l.id}">${l.label}</button>`).join('')}
+      </div>
+      <p style="font-size:11px; color:var(--muted); margin-top:12px;">Les menus et boutons se traduisent. Les recettes et descriptions d'exercices restent en français pour l'instant.</p>
+    </div>
+  `;
+}
+
 function renderCoachPanel(){
   const msgs = state.coachMsgs.map(m=>`<div class="msg ${m.role}">${m.text}</div>`).join('');
   return `
@@ -1366,6 +1536,64 @@ function attachHandlers(u){
       state.recetteFiltre = el.dataset.recetteFiltre;
       render();
     });
+  });
+
+  const pObjEl = document.getElementById('pObjectifs');
+  if(pObjEl){
+    pObjEl.dataset.selected = JSON.stringify(u.objectifs);
+    pObjEl.addEventListener('click', e=>{
+      const btn = e.target.closest('[data-pobj]'); if(!btn) return;
+      const cur = new Set(JSON.parse(pObjEl.dataset.selected));
+      const id = btn.dataset.pobj;
+      if(cur.has(id)){ cur.delete(id); btn.classList.remove('selected'); }
+      else{ cur.add(id); btn.classList.add('selected'); }
+      pObjEl.dataset.selected = JSON.stringify([...cur]);
+    });
+  }
+
+  const btnSaveProfil = document.getElementById('btnSaveProfil');
+  if(btnSaveProfil) btnSaveProfil.addEventListener('click', async ()=>{
+    const poids = parseFloat(document.getElementById('pPoids').value);
+    const age = parseInt(document.getElementById('pAge').value, 10);
+    const taille = parseFloat(document.getElementById('pTaille').value);
+    const objectifs = pObjEl ? JSON.parse(pObjEl.dataset.selected || '[]') : u.objectifs;
+    if(!poids || poids<30 || poids>300){ showToast('Poids invalide (30 à 300 kg).'); return; }
+    if(!age || age<12 || age>100){ showToast('Âge invalide (12 à 100 ans).'); return; }
+    if(!taille || taille<100 || taille>250){ showToast('Taille invalide (100 à 250 cm).'); return; }
+    if(objectifs.length===0){ showToast('Choisis au moins un objectif.'); return; }
+    u.poids = poids; u.age = age; u.taille = taille; u.objectifs = objectifs;
+    await upsertProfile(u);
+    showToast('Profil mis à jour ✅');
+  });
+
+  document.querySelectorAll('[data-set-theme]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      u.theme = el.dataset.setTheme;
+      applyTheme(u.theme);
+      await upsertProfile(u);
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-set-langue]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      u.langue = el.dataset.setLangue;
+      await upsertProfile(u);
+      render();
+    });
+  });
+
+  const avatarInput = document.getElementById('fAvatarUpload');
+  if(avatarInput) avatarInput.addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const cartoonEl = document.getElementById('fCartoonFilter');
+    const cartoon = cartoonEl ? cartoonEl.checked : false;
+    showToast('Traitement de la photo…');
+    const dataUrl = await resizeImageToDataUrl(file, 200, cartoon);
+    u.avatarData = dataUrl;
+    await upsertProfile(u);
+    render();
   });
 
   const fab = document.getElementById('coachFab');
