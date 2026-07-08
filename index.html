@@ -34,6 +34,19 @@
     --font-body: 'Inter', -apple-system, sans-serif;
     --font-mono: 'Space Mono', monospace;
   }
+  body.light-mode{
+    --ink:#f5f3ee;
+    --ink-2:#ffffff;
+    --card:#ffffff;
+    --card-hi:#f0eee7;
+    --line: rgba(20,22,26,0.08);
+    --line-strong: rgba(20,22,26,0.16);
+    --chalk:#14161a;
+    --chalk-dim:#3a3d44;
+    --muted:#6b6f78;
+  }
+  body.light-mode .track-fill{ background: repeating-linear-gradient(90deg, var(--energy) 0 10px, #ffb199 10px 20px); }
+  body.light-mode .rank-badge span, body.light-mode .rank-node.done, body.light-mode .rank-node.current, body.light-mode .day-card.today .day-badge{ color:#ffffff; }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -95,6 +108,11 @@
     padding:7px 12px; border-radius:100px; font-size:12px;
   }
   .btn-logout:hover{ color:var(--chalk); border-color:var(--chalk-dim); }
+  .btn-gear{
+    background:var(--card); border:1px solid var(--line); color:var(--muted);
+    width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  }
+  .btn-gear:hover, .btn-gear.active{ color:var(--energy); border-color:var(--energy); }
 
   /* ---------- Tabs ---------- */
   .tabs{
@@ -516,11 +534,12 @@ function t(key){
   return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS.fr[key] || key;
 }
 
-function applyTheme(themeId){
+function applyTheme(themeId, mode){
   const theme = THEMES[themeId] || THEMES.orange;
   document.documentElement.style.setProperty('--energy', theme.energy);
   document.documentElement.style.setProperty('--energy-dim', theme.energyDim);
   document.documentElement.style.setProperty('--maitre', theme.maitre);
+  document.body.classList.toggle('light-mode', mode==='clair');
 }
 const EQUIPEMENTS = [
   {id:'velo', label:'Vélo'},
@@ -544,6 +563,7 @@ function mapRowToUser(row){
     equipements: row.equipements || [],
     tempsDispo: row.temps_dispo || 20,
     theme: row.theme || 'orange',
+    mode: row.mode || 'sombre',
     langue: row.langue || 'fr',
     avatarData: row.avatar_data || null,
     points: row.points || 0,
@@ -566,6 +586,7 @@ function mapUserToRow(u){
     equipements: u.equipements,
     temps_dispo: u.tempsDispo,
     theme: u.theme,
+    mode: u.mode,
     langue: u.langue,
     avatar_data: u.avatarData,
     points: u.points,
@@ -809,6 +830,7 @@ function iconSvg(kind){
   if(kind==='chef') return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 13a6 6 0 1112 0v7H6v-7z" stroke="currentColor" stroke-width="2"/><path d="M6 20h12" stroke="currentColor" stroke-width="2"/></svg>`;
   if(kind==='bot') return `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="11" rx="3" stroke="#14161a" stroke-width="2"/><path d="M12 4v4M9 13v2M15 13v2" stroke="#14161a" stroke-width="2" stroke-linecap="round"/></svg>`;
   if(kind==='lock') return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2"/></svg>`;
+  if(kind==='gear') return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13a1.7 1.7 0 000-2l1.2-1.7-2-3.4-2 .6a1.7 1.7 0 00-1.7-1L14.5 3h-5l-.4 2.5a1.7 1.7 0 00-1.7 1l-2-.6-2 3.4L4.6 11a1.7 1.7 0 000 2l-1.2 1.7 2 3.4 2-.6a1.7 1.7 0 001.7 1l.4 2.5h5l.4-2.5a1.7 1.7 0 001.7-1l2 .6 2-3.4-1.2-1.7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
   return '';
 }
 
@@ -817,7 +839,7 @@ function render(){
   const u = me();
   if(!u){ renderAuth(); return; }
   ensureDailyChallenge(u);
-  applyTheme(u.theme);
+  applyTheme(u.theme, u.mode);
 
   const lvlIdx = levelIndexForPoints(u.points);
   const lvl = LEVELS[lvlIdx];
@@ -836,6 +858,7 @@ function render(){
       <div class="topbar-right">
         <div class="pill">${iconSvg('flame')} <strong>${u.points}</strong> pts</div>
         <div class="pill">${u.avatarData ? `<img src="${u.avatarData}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;">` : ''} ${u.pseudo}</div>
+        <button class="btn-gear ${state.view==='parametres'?'active':''}" id="btnGear" title="${t('parametres')}">${iconSvg('gear')}</button>
         <button class="btn-logout" id="btnLogout">${t('deconnexion')}</button>
       </div>
     </div>
@@ -846,7 +869,6 @@ function render(){
       ${tabBtn('recettes', t('recettes'))}
       ${tabBtn('run', t('run'))}
       ${tabBtn('classement', t('classement'))}
-      ${tabBtn('parametres', t('parametres'))}
     </div>
     <div class="view" id="viewport"></div>
     <p style="text-align:center; font-size:11px; color:var(--muted); padding:0 22px 30px;">MAÎTRISE — application créée par <b style="color:var(--chalk-dim);">Wael Daoudi</b></p>
@@ -1217,6 +1239,14 @@ function renderParametres(u){
     </div>
 
     <div class="card" style="margin-top:20px;">
+      <h3 style="margin-bottom:16px;">Fond du site</h3>
+      <div class="chip-group">
+        <button type="button" class="chip ${(u.mode||'sombre')==='sombre'?'selected':''}" data-set-mode="sombre">🌙 Sombre</button>
+        <button type="button" class="chip ${u.mode==='clair'?'selected':''}" data-set-mode="clair">☀️ Clair</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
       <h3 style="margin-bottom:16px;">Couleur du site</h3>
       <div class="chip-group">
         ${Object.entries(THEMES).map(([id,th])=>`
@@ -1436,6 +1466,8 @@ function attachHandlers(u){
   document.querySelectorAll('[data-tab]').forEach(el=>{
     el.addEventListener('click', ()=>switchTab(el.dataset.tab));
   });
+  const gearBtn = document.getElementById('btnGear');
+  if(gearBtn) gearBtn.addEventListener('click', ()=>switchTab('parametres'));
   const logout = document.getElementById('btnLogout');
   if(logout) logout.addEventListener('click', async ()=>{
     stopGpsTracking(); state.gps=null;
@@ -1569,7 +1601,16 @@ function attachHandlers(u){
   document.querySelectorAll('[data-set-theme]').forEach(el=>{
     el.addEventListener('click', async ()=>{
       u.theme = el.dataset.setTheme;
-      applyTheme(u.theme);
+      applyTheme(u.theme, u.mode);
+      await upsertProfile(u);
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-set-mode]').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      u.mode = el.dataset.setMode;
+      applyTheme(u.theme, u.mode);
       await upsertProfile(u);
       render();
     });
