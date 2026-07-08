@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
 <style>
   :root{
     --ink:#14161a;
@@ -387,6 +388,7 @@
 <body>
 
 <div id="root"></div>
+<div id="music-mount" style="position:fixed; bottom:-100px; left:-100px; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none;"></div>
 
 <script>
 /* =========================================================
@@ -739,6 +741,8 @@ let state = {
   gpsWatchId:null,
   gpsNotifTimer:null,
   gpsTickTimer:null,
+  musicPlaying:false,
+  musicReady:false,
   recetteFiltre:'tous',
 };
 function me(){ return state.profile; }
@@ -831,6 +835,9 @@ function iconSvg(kind){
   if(kind==='bot') return `<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4" y="8" width="16" height="11" rx="3" stroke="#14161a" stroke-width="2"/><path d="M12 4v4M9 13v2M15 13v2" stroke="#14161a" stroke-width="2" stroke-linecap="round"/></svg>`;
   if(kind==='lock') return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2"/></svg>`;
   if(kind==='gear') return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 13a1.7 1.7 0 000-2l1.2-1.7-2-3.4-2 .6a1.7 1.7 0 00-1.7-1L14.5 3h-5l-.4 2.5a1.7 1.7 0 00-1.7 1l-2-.6-2 3.4L4.6 11a1.7 1.7 0 000 2l-1.2 1.7 2 3.4 2-.6a1.7 1.7 0 001.7 1l.4 2.5h5l.4-2.5a1.7 1.7 0 001.7-1l2 .6 2-3.4-1.2-1.7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  if(kind==='musicNote') return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="16" r="3" stroke="currentColor" stroke-width="2"/></svg>`;
+  if(kind==='pause') return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>`;
+  if(kind==='skipNext') return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 5l10 7-10 7V5z" fill="currentColor"/><rect x="17" y="5" width="2" height="14" fill="currentColor"/></svg>`;
   return '';
 }
 
@@ -858,6 +865,8 @@ function render(){
       <div class="topbar-right">
         <div class="pill">${iconSvg('flame')} <strong>${u.points}</strong> pts</div>
         <div class="pill">${u.avatarData ? `<img src="${u.avatarData}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;">` : ''} ${u.pseudo}</div>
+        <button class="btn-gear" id="btnMusicNext" title="Piste suivante" style="display:${state.musicPlaying?'flex':'none'};">${iconSvg('skipNext')}</button>
+        <button class="btn-gear ${state.musicPlaying?'active':''}" id="btnMusic" title="Musique d'entraînement (NCS, libre de droits)">${state.musicPlaying ? iconSvg('pause') : iconSvg('musicNote')}</button>
         <button class="btn-gear ${state.view==='parametres'?'active':''}" id="btnGear" title="${t('parametres')}">${iconSvg('gear')}</button>
         <button class="btn-logout" id="btnLogout">${t('deconnexion')}</button>
       </div>
@@ -871,7 +880,7 @@ function render(){
       ${tabBtn('classement', t('classement'))}
     </div>
     <div class="view" id="viewport"></div>
-    <p style="text-align:center; font-size:11px; color:var(--muted); padding:0 22px 30px;">MAÎTRISE — application créée par <b style="color:var(--chalk-dim);">Wael Daoudi</b></p>
+    <p style="text-align:center; font-size:11px; color:var(--muted); padding:0 22px 30px;">MAÎTRISE — application créée par <b style="color:var(--chalk-dim);">Wael Daoudi</b> · Musique : <a href="https://ncs.io" target="_blank" style="color:var(--muted);">NCS - NoCopyrightSounds</a></p>
     ${state.toast ? `<div class="toast">${state.toast}</div>` : ''}
     <button class="coach-fab" id="coachFab" title="Parler au coach">${iconSvg('bot')}</button>
     ${state.coachOpen ? renderCoachPanel() : ''}
@@ -1468,6 +1477,10 @@ function attachHandlers(u){
   });
   const gearBtn = document.getElementById('btnGear');
   if(gearBtn) gearBtn.addEventListener('click', ()=>switchTab('parametres'));
+  const musicBtn = document.getElementById('btnMusic');
+  if(musicBtn) musicBtn.addEventListener('click', ()=>{ toggleMusic(); setTimeout(render, 300); });
+  const musicNextBtn = document.getElementById('btnMusicNext');
+  if(musicNextBtn) musicNextBtn.addEventListener('click', nextTrack);
   const logout = document.getElementById('btnLogout');
   if(logout) logout.addEventListener('click', async ()=>{
     stopGpsTracking(); state.gps=null;
@@ -1880,6 +1893,44 @@ Ton rôle :
   }
   state.coachBusy = false;
   render();
+}
+
+/* =========================================================
+   MUSIQUE D'ENTRAÎNEMENT (playlist NCS — libre de droits)
+   Lecteur YouTube caché, contrôlé par notre propre interface
+   ========================================================= */
+let ytPlayer = null;
+const NCS_PLAYLIST_ID = 'PLRBp0Fe2GpgnIh0AiYKh7o7HnYAej-5ph';
+
+window.onYouTubeIframeAPIReady = function(){
+  ytPlayer = new YT.Player('music-mount', {
+    height: '1', width: '1',
+    playerVars: { listType:'playlist', list: NCS_PLAYLIST_ID, autoplay:0, controls:0, disablekb:1 },
+    events: {
+      onReady: () => { state.musicReady = true; if(ytPlayer.setVolume) ytPlayer.setVolume(60); },
+      onStateChange: (e) => {
+        if(e.data === YT.PlayerState.PLAYING) state.musicPlaying = true;
+        if(e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) state.musicPlaying = false;
+        updateMusicButton();
+      }
+    }
+  });
+};
+
+function toggleMusic(){
+  if(!ytPlayer || !state.musicReady){ showToast('Musique en cours de chargement, réessaie dans un instant.'); return; }
+  if(state.musicPlaying){ ytPlayer.pauseVideo(); }
+  else{ ytPlayer.playVideo(); }
+}
+function nextTrack(){
+  if(!ytPlayer || !state.musicReady) return;
+  ytPlayer.nextVideo();
+}
+function updateMusicButton(){
+  const btn = document.getElementById('btnMusic');
+  if(btn) btn.innerHTML = state.musicPlaying ? iconSvg('pause') : iconSvg('musicNote');
+  const nextBtn = document.getElementById('btnMusicNext');
+  if(nextBtn) nextBtn.style.display = state.musicPlaying ? 'flex' : 'none';
 }
 
 /* =========================================================
