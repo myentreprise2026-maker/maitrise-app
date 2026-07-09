@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MAÎTRISE — Ligue Fitness</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ff6a3d">
+<link rel="icon" type="image/png" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MAÎTRISE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -743,6 +750,7 @@ let state = {
   gpsTickTimer:null,
   musicPlaying:false,
   musicReady:false,
+  canInstall:false,
   recetteFiltre:'tous',
 };
 function me(){ return state.profile; }
@@ -1215,6 +1223,16 @@ function renderParametres(u){
     <h3>Paramètres</h3>
     <p style="color:var(--muted); font-size:12.5px; margin:-8px 0 22px;">Modifie tes informations, la couleur du site, la langue, et ta photo de profil.</p>
 
+    ${state.canInstall ? `
+    <div class="card" style="border-color:var(--energy); margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+      <div>
+        <h3 style="margin-bottom:4px;">📲 Installer l'application</h3>
+        <p style="color:var(--chalk-dim); font-size:13px; margin:0;">Ajoute MAÎTRISE sur ton écran d'accueil — gratuit, comme une vraie appli, sans passer par un store.</p>
+      </div>
+      <button class="btn-primary" id="btnInstallApp" style="width:auto; margin:0; white-space:nowrap;">Installer</button>
+    </div>
+    ` : ''}
+
     <div class="card">
       <h3 style="margin-bottom:16px;">Profil</h3>
       <div style="display:flex; align-items:center; gap:18px; margin-bottom:20px;">
@@ -1596,6 +1614,9 @@ function attachHandlers(u){
     });
   }
 
+  const btnInstallApp = document.getElementById('btnInstallApp');
+  if(btnInstallApp) btnInstallApp.addEventListener('click', triggerInstall);
+
   const btnSaveProfil = document.getElementById('btnSaveProfil');
   if(btnSaveProfil) btnSaveProfil.addEventListener('click', async ()=>{
     const poids = parseFloat(document.getElementById('pPoids').value);
@@ -1931,6 +1952,42 @@ function updateMusicButton(){
   if(btn) btn.innerHTML = state.musicPlaying ? iconSvg('pause') : iconSvg('musicNote');
   const nextBtn = document.getElementById('btnMusicNext');
   if(nextBtn) nextBtn.style.display = state.musicPlaying ? 'flex' : 'none';
+}
+
+/* =========================================================
+   PWA — installation "gratuite" en tant qu'application
+   ========================================================= */
+let deferredInstallPrompt = null;
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  state.canInstall = true;
+  render();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  state.canInstall = false;
+  render();
+});
+
+async function triggerInstall(){
+  if(!deferredInstallPrompt){
+    showToast('Installation non disponible ici — utilise le menu "Ajouter à l\'écran d\'accueil" de ton navigateur.');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  state.canInstall = false;
+  render();
 }
 
 /* =========================================================
