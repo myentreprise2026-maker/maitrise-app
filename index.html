@@ -438,6 +438,44 @@
   .meal-history-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
   .meal-history-dot.vert{ background:#2ecf7a; } .meal-history-dot.orange{ background:#e8b93b; } .meal-history-dot.rouge{ background:#ef4444; }
 
+  /* ---------- Démo exercice : muscles + animation du mouvement ---------- */
+  .muscle-diagram-wrap{
+    background:var(--ink-2); border:1px solid var(--line-strong); border-radius:12px;
+    padding:18px; margin-top:10px;
+  }
+  .demo-row{ display:flex; justify-content:center; gap:30px; flex-wrap:wrap; align-items:flex-start; }
+  .muscle-bodies{ display:flex; justify-content:center; gap:24px; flex-wrap:wrap; }
+  .muscle-body-label, .demo-figure-label{ text-align:center; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:6px; }
+  .muscle-zone{ fill:#3a3d44; transition:fill 0.2s; }
+  .muscle-zone.primaire{ fill:#ef4444; animation: musclePulse 1.8s ease-in-out infinite; }
+  .muscle-zone.secondaire{ fill:#2ecf7a; animation: musclePulse 1.8s ease-in-out infinite; animation-delay:0.3s; }
+  @keyframes musclePulse{ 0%, 100% { opacity:1; } 50% { opacity:0.55; } }
+  .muscle-legend{ display:flex; justify-content:center; gap:20px; margin-top:14px; font-size:11.5px; color:var(--chalk-dim); }
+  .muscle-legend-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle; }
+
+  .demo-figure-wrap{ display:flex; align-items:center; justify-content:center; height:170px; }
+  .demo-figure{ transform-origin:50px 90px; }
+  .anim-pushup .demo-figure{ animation: animPushup 1.3s ease-in-out infinite; }
+  .anim-squat .demo-figure{ animation: animSquat 1.5s ease-in-out infinite; }
+  .anim-lunge .demo-figure{ animation: animLunge 1.4s ease-in-out infinite; }
+  .anim-plank .demo-figure{ animation: animPlank 1.6s ease-in-out infinite; }
+  .anim-crunch .demo-figure{ animation: animCrunch 1.2s ease-in-out infinite; }
+  .anim-pullup .demo-figure{ animation: animPullup 1.4s ease-in-out infinite; }
+  .anim-jumpingjack .demo-figure{ animation: animJumpingjack 1s ease-in-out infinite; }
+  .anim-jumprope .demo-figure{ animation: animJumprope 0.7s ease-in-out infinite; }
+  .anim-highknees .demo-figure{ animation: animHighknees 0.6s ease-in-out infinite; }
+  .anim-mountainclimber .demo-figure{ animation: animMountain 0.6s ease-in-out infinite; }
+  @keyframes animPushup{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(14px); } }
+  @keyframes animSquat{ 0%,100%{ transform:translateY(0) scaleY(1); } 50%{ transform:translateY(18px) scaleY(0.85); } }
+  @keyframes animLunge{ 0%,100%{ transform:translateY(0) translateX(0); } 50%{ transform:translateY(14px) translateX(6px); } }
+  @keyframes animPlank{ 0%,100%{ transform:translateY(0) rotate(0deg); } 50%{ transform:translateY(-2px) rotate(0.5deg); } }
+  @keyframes animCrunch{ 0%,100%{ transform:scaleY(1); } 50%{ transform:scaleY(0.88) translateY(6px); } }
+  @keyframes animPullup{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-16px); } }
+  @keyframes animJumpingjack{ 0%,100%{ transform:scaleX(1); } 50%{ transform:scaleX(1.3); } }
+  @keyframes animJumprope{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-12px); } }
+  @keyframes animHighknees{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+  @keyframes animMountain{ 0%,100%{ transform:translateX(0); } 50%{ transform:translateX(4px) translateY(-3px); } }
+
 </style>
 </head>
 <body>
@@ -612,6 +650,28 @@ function applyTheme(themeId, mode){
   document.documentElement.style.setProperty('--maitre', theme.maitre);
   document.body.classList.toggle('light-mode', mode==='clair');
 }
+const MUSCLE_MAP = {
+  pompes: { primaire:['pectoraux','triceps'], secondaire:['epaules','abdos'], anim:'pushup' },
+  squats: { primaire:['quadriceps','fessiers'], secondaire:['ischios','mollets','abdos'], anim:'squat' },
+  fentes: { primaire:['quadriceps','fessiers'], secondaire:['ischios','mollets'], anim:'lunge' },
+  gainage: { primaire:['abdos'], secondaire:['epaules','dos'], anim:'plank' },
+  gainage_lateral: { primaire:['abdos'], secondaire:['epaules'], anim:'plank' },
+  course: { primaire:['quadriceps','mollets'], secondaire:['ischios','fessiers','abdos'], anim:'highknees' },
+  corde: { primaire:['mollets','epaules'], secondaire:['abdos','quadriceps'], anim:'jumprope' },
+  velo: { primaire:['quadriceps','mollets'], secondaire:['ischios','fessiers'], anim:'highknees' },
+  tractions: { primaire:['dos','biceps'], secondaire:['avant_bras','epaules'], anim:'pullup' },
+  abdos: { primaire:['abdos'], secondaire:[], anim:'crunch' },
+  yoga: { primaire:['abdos','dos'], secondaire:['epaules','ischios'], anim:'plank' },
+  jumping_jacks: { primaire:['mollets','epaules'], secondaire:['abdos','quadriceps'], anim:'jumpingjack' },
+  burpees: { primaire:['pectoraux','quadriceps','abdos'], secondaire:['epaules','triceps','mollets'], anim:'squat' },
+  montee_genoux: { primaire:['quadriceps','mollets'], secondaire:['abdos'], anim:'highknees' },
+  mountain_climbers: { primaire:['abdos','epaules'], secondaire:['quadriceps'], anim:'mountainclimber' },
+  talons_fesses: { primaire:['ischios','mollets'], secondaire:['fessiers'], anim:'highknees' },
+  squat_jump: { primaire:['quadriceps','fessiers','mollets'], secondaire:['abdos'], anim:'squat' },
+  marche_rapide: { primaire:['mollets','quadriceps'], secondaire:['ischios','fessiers'], anim:'highknees' },
+  courir_sur_place: { primaire:['quadriceps','mollets'], secondaire:['abdos'], anim:'highknees' },
+};
+
 const EQUIPEMENTS = [
   {id:'velo', label:'Vélo'},
   {id:'barre', label:'Barre de traction'},
@@ -846,6 +906,7 @@ let state = {
   mealAnalyzing:false,
   mealResult:null,
   recetteFiltre:'tous',
+  muscleDiagramOpen:null,
 };
 function me(){ return state.profile; }
 
@@ -1067,6 +1128,84 @@ function logoSvg(size){
   </svg>`;
 }
 
+function muscleZoneClass(active, id){
+  return active[id] ? `muscle-zone ${active[id]}` : 'muscle-zone';
+}
+function muscleBodyFrontSvg(active){
+  const c = (id)=>muscleZoneClass(active,id);
+  return `<svg width="100" height="200" viewBox="0 0 100 200">
+    <circle cx="50" cy="18" r="14" fill="#5a5e68"/>
+    <rect x="46" y="30" width="8" height="8" fill="#5a5e68"/>
+    <ellipse class="${c('epaules')}" cx="28" cy="42" rx="10" ry="8"/>
+    <ellipse class="${c('epaules')}" cx="72" cy="42" rx="10" ry="8"/>
+    <rect class="${c('pectoraux')}" x="34" y="40" width="32" height="24" rx="6"/>
+    <rect class="${c('abdos')}" x="38" y="66" width="24" height="30" rx="4"/>
+    <rect class="${c('biceps')}" x="16" y="48" width="10" height="24" rx="4"/>
+    <rect class="${c('biceps')}" x="74" y="48" width="10" height="24" rx="4"/>
+    <rect class="${c('avant_bras')}" x="14" y="74" width="9" height="22" rx="4"/>
+    <rect class="${c('avant_bras')}" x="77" y="74" width="9" height="22" rx="4"/>
+    <rect class="${c('quadriceps')}" x="36" y="98" width="12" height="40" rx="5"/>
+    <rect class="${c('quadriceps')}" x="52" y="98" width="12" height="40" rx="5"/>
+    <rect x="37" y="140" width="10" height="36" rx="4" fill="#3a3d44"/>
+    <rect x="53" y="140" width="10" height="36" rx="4" fill="#3a3d44"/>
+  </svg>`;
+}
+function muscleBodyBackSvg(active){
+  const c = (id)=>muscleZoneClass(active,id);
+  return `<svg width="100" height="200" viewBox="0 0 100 200">
+    <circle cx="50" cy="18" r="14" fill="#5a5e68"/>
+    <rect x="46" y="30" width="8" height="8" fill="#5a5e68"/>
+    <ellipse class="${c('trapezes')}" cx="50" cy="42" rx="18" ry="8"/>
+    <rect class="${c('dos')}" x="34" y="46" width="32" height="30" rx="6"/>
+    <rect class="${c('triceps')}" x="16" y="48" width="10" height="24" rx="4"/>
+    <rect class="${c('triceps')}" x="74" y="48" width="10" height="24" rx="4"/>
+    <rect x="14" y="74" width="9" height="22" rx="4" fill="#3a3d44"/>
+    <rect x="77" y="74" width="9" height="22" rx="4" fill="#3a3d44"/>
+    <ellipse class="${c('fessiers')}" cx="50" cy="92" rx="18" ry="12"/>
+    <rect class="${c('ischios')}" x="36" y="104" width="12" height="34" rx="5"/>
+    <rect class="${c('ischios')}" x="52" y="104" width="12" height="34" rx="5"/>
+    <rect class="${c('mollets')}" x="37" y="140" width="10" height="36" rx="4"/>
+    <rect class="${c('mollets')}" x="53" y="140" width="10" height="36" rx="4"/>
+  </svg>`;
+}
+function demoFigureSvg(){
+  return `<svg class="demo-figure" width="100" height="160" viewBox="0 0 100 160">
+    <circle cx="50" cy="16" r="10" fill="var(--chalk)"/>
+    <line x1="50" y1="26" x2="50" y2="80" stroke="var(--chalk)" stroke-width="6" stroke-linecap="round"/>
+    <line x1="50" y1="36" x2="28" y2="60" stroke="var(--chalk)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="50" y1="36" x2="72" y2="60" stroke="var(--chalk)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="50" y1="80" x2="34" y2="130" stroke="var(--chalk)" stroke-width="6" stroke-linecap="round"/>
+    <line x1="50" y1="80" x2="66" y2="130" stroke="var(--chalk)" stroke-width="6" stroke-linecap="round"/>
+  </svg>`;
+}
+function renderMuscleDiagram(exId){
+  const map = MUSCLE_MAP[exId];
+  const ex = EXERCISES.find(e=>e.id===exId);
+  if(!map) return `<div class="muscle-diagram-wrap"><p style="font-size:12px; color:var(--muted); margin:0; text-align:center;">Pas de démo disponible pour cet exercice.</p></div>`;
+  const active = {};
+  (map.primaire||[]).forEach(z=>active[z]='primaire');
+  (map.secondaire||[]).forEach(z=>{ if(!active[z]) active[z]='secondaire'; });
+  return `
+    <div class="muscle-diagram-wrap">
+      <p style="font-size:12.5px; color:var(--chalk-dim); margin:0 0 14px; text-align:center;">${ex ? ex.desc : ''}</p>
+      <div class="demo-row">
+        <div>
+          <div class="demo-figure-wrap anim-${map.anim}">${demoFigureSvg()}</div>
+          <div class="demo-figure-label">Rythme du mouvement</div>
+        </div>
+        <div class="muscle-bodies">
+          <div>${muscleBodyFrontSvg(active)}<div class="muscle-body-label">Face avant</div></div>
+          <div>${muscleBodyBackSvg(active)}<div class="muscle-body-label">Face arrière</div></div>
+        </div>
+      </div>
+      <div class="muscle-legend">
+        <span><span class="muscle-legend-dot" style="background:#ef4444;"></span>Muscle principal</span>
+        <span><span class="muscle-legend-dot" style="background:#2ecf7a;"></span>Muscle secondaire</span>
+      </div>
+    </div>
+  `;
+}
+
 function iconSvg(kind){
   if(kind==='flame') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2c1 3-2 4-2 7a4 4 0 008 0c0-2-1-3-1-3s2 1 2 5a7 7 0 11-14 0c0-5 4-6 7-9z" fill="currentColor"/></svg>`;
   if(kind==='dumbbell') return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 9v6M2 10v4M20 9v6M22 10v4M8 8v8M16 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -1238,6 +1377,7 @@ function renderRun(u){
     if(ex.equip && !(u.equipements||[]).includes(ex.equip)) return '';
     const target = computeTarget(ex, u.poids, u);
     const trackingThis = state.gps && state.gps.exId===id;
+    const diagramOpen = state.muscleDiagramOpen === id;
     return `
     <div class="ex-card">
       <div class="ex-icon ${ex.icon}">${iconSvg(ex.icon==='muscle'?'dumbbell':'flame')}</div>
@@ -1246,18 +1386,20 @@ function renderRun(u){
         <p class="ex-target">${target.display}</p>
       </div>
       <div class="ex-actions">
+        <button class="btn-small" data-toggle-muscle="${id}" title="Voir les muscles sollicités">💪 Démo</button>
         ${trackingThis
           ? `<span class="badge-done" style="color:var(--muscle);">📍 Suivi en cours</span>`
           : `<button class="btn-small go" data-gps-start="${id}">▶ Commencer</button>`
         }
       </div>
-    </div>`;
+    </div>
+    ${diagramOpen ? renderMuscleDiagram(id) : ''}`;
   }).join('');
 
   const surPlace = EXERCISES.find(e=>e.id==='courir_sur_place');
   const surPlaceTarget = computeTarget(surPlace, u.poids, u);
-  const surPlaceDone = false; // pas de notion de "done" ici, c'est une activité libre
   const surPlaceCooldownOk = (Date.now() - (u.cooldowns['courir_sur_place']||0)) >= 4*60*60*1000;
+  const surPlaceDiagramOpen = state.muscleDiagramOpen === 'courir_sur_place';
 
   return `
     <h3>🏃 RUN — à tout moment</h3>
@@ -1275,12 +1417,14 @@ function renderRun(u){
           <p class="ex-meta">${surPlace.desc}</p>
         </div>
         <div class="ex-actions">
+          <button class="btn-small" data-toggle-muscle="courir_sur_place" title="Voir les muscles sollicités">💪 Démo</button>
           ${surPlaceCooldownOk
             ? `<button class="btn-small go" data-validate="courir_sur_place">Terminé →</button>`
             : `<span class="badge-done" style="color:var(--muscle);">${iconSvg('medal')} Fait récemment</span>`
           }
         </div>
       </div>
+      ${surPlaceDiagramOpen ? renderMuscleDiagram('courir_sur_place') : ''}
     </div>
   `;
 }
@@ -1291,6 +1435,7 @@ function renderDefis(u){
   const rows = list.map(ex=>{
     const target = computeTarget(ex, u.poids, u);
     const done = !!(u.doneToday && u.doneToday[ex.id]);
+    const diagramOpen = state.muscleDiagramOpen === ex.id;
     return `
     <div class="ex-card">
       <div class="ex-icon ${ex.icon}">${iconSvg(ex.icon==='muscle'?'dumbbell':'flame')}</div>
@@ -1300,6 +1445,7 @@ function renderDefis(u){
         <p class="ex-meta">${ex.desc}</p>
       </div>
       <div class="ex-actions">
+        <button class="btn-small" data-toggle-muscle="${ex.id}" title="Voir la démo et les muscles sollicités">💪 Démo</button>
         ${done
           ? `<span class="badge-done">${iconSvg('medal')} Validé</span>`
           : (ex.type==='distance'
@@ -1309,7 +1455,8 @@ function renderDefis(u){
               : `<button class="btn-small" data-swap="${ex.id}" title="Remplacer par un autre exercice">⇄</button><button class="btn-small go" data-validate="${ex.id}">Terminé →</button>`)
         }
       </div>
-    </div>`;
+    </div>
+    ${diagramOpen ? renderMuscleDiagram(ex.id) : ''}`;
   }).join('');
 
   const allDone = list.length>0 && list.every(ex => u.doneToday && u.doneToday[ex.id]);
@@ -1894,6 +2041,14 @@ function attachHandlers(u){
       const i = u.dailyExercises.indexOf(oldId);
       if(i>=0) u.dailyExercises[i] = replacement.id;
       await upsertProfile(u);
+      render();
+    });
+  });
+
+  document.querySelectorAll('[data-toggle-muscle]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.dataset.toggleMuscle;
+      state.muscleDiagramOpen = state.muscleDiagramOpen === id ? null : id;
       render();
     });
   });
